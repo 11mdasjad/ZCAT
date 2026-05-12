@@ -4,7 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Zap, Mail, Lock, User, Building2, ArrowRight, ArrowLeft, Globe, Check } from 'lucide-react';
+import { Zap, Mail, Lock, User, Building2, ArrowRight, ArrowLeft, Globe, Check, GraduationCap, Calendar, FileText, Briefcase, Code } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import toast from 'react-hot-toast';
 
 const steps = ['Account', 'Details', 'Confirm'];
 
@@ -12,19 +14,60 @@ export default function RegisterPage() {
   const [step, setStep] = useState(0);
   const [role, setRole] = useState<'candidate' | 'recruiter'>('candidate');
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', confirmPassword: '', company: '', college: '',
+    name: '', email: '', password: '', confirmPassword: '', 
+    company: '', jobTitle: '',
+    university: '', graduationYear: '', resumeUrl: '', skills: ''
   });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   const update = (field: string, value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 2) { setStep(step + 1); return; }
+    if (step < 2) { 
+      if (step === 0 && (!formData.name || !formData.email)) {
+        toast.error('Please fill in all fields');
+        return;
+      }
+      if (step === 1 && (formData.password !== formData.confirmPassword || formData.password.length < 6)) {
+        toast.error('Passwords must match and be at least 6 characters');
+        return;
+      }
+      setStep(step + 1); 
+      return; 
+    }
+    
     setLoading(true);
-    setTimeout(() => router.push('/login'), 1500);
+    
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.name,
+          role: role,
+          university: formData.university || null,
+          graduation_year: formData.graduationYear ? parseInt(formData.graduationYear) : null,
+          resume_url: formData.resumeUrl || null,
+          company_name: formData.company || null,
+          job_title: formData.jobTitle || null,
+          skills: formData.skills ? formData.skills.split(',').map(s => s.trim()) : []
+        }
+      }
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Registration successful! Please check your email to verify.');
+      router.push('/login');
+    }
   };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen px-4 py-12">
@@ -87,43 +130,90 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                  <input type="text" value={formData.name} onChange={(e) => update('name', e.target.value)} placeholder="John Doe" className="input-neon w-full !pl-10" />
+                  <input type="text" value={formData.name} required onChange={(e) => update('name', e.target.value)} placeholder="John Doe" className="input-neon w-full !pl-10" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                  <input type="email" value={formData.email} onChange={(e) => update('email', e.target.value)} placeholder="you@email.com" className="input-neon w-full !pl-10" />
+                  <input type="email" value={formData.email} required onChange={(e) => update('email', e.target.value)} placeholder="you@email.com" className="input-neon w-full !pl-10" />
                 </div>
               </div>
             </motion.div>
           )}
 
           {step === 1 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                  <input type="password" value={formData.password} onChange={(e) => update('password', e.target.value)} placeholder="Min 8 characters" className="input-neon w-full !pl-10" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                  <input type="password" value={formData.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)} placeholder="Confirm password" className="input-neon w-full !pl-10" />
-                </div>
-              </div>
-              {role === 'recruiter' && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Company</label>
+                  <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Password</label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                    <input type="text" value={formData.company} onChange={(e) => update('company', e.target.value)} placeholder="Company name" className="input-neon w-full !pl-10" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                    <input type="password" required value={formData.password} onChange={(e) => update('password', e.target.value)} placeholder="Min 6 chars" className="input-neon w-full !pl-10" />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                    <input type="password" required value={formData.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)} placeholder="Confirm password" className="input-neon w-full !pl-10" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="h-px bg-[#21262d] my-4" />
+
+              {role === 'recruiter' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Company Name</label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                      <input type="text" value={formData.company} onChange={(e) => update('company', e.target.value)} placeholder="Acme Corp" className="input-neon w-full !pl-10" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Job Title</label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                      <input type="text" value={formData.jobTitle} onChange={(e) => update('jobTitle', e.target.value)} placeholder="HR Manager" className="input-neon w-full !pl-10" />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b949e] mb-1.5">University / College</label>
+                      <div className="relative">
+                        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                        <input type="text" value={formData.university} onChange={(e) => update('university', e.target.value)} placeholder="MIT" className="input-neon w-full !pl-10" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Graduation Year</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                        <input type="number" min="2000" max="2035" value={formData.graduationYear} onChange={(e) => update('graduationYear', e.target.value)} placeholder="2025" className="input-neon w-full !pl-10" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Top Skills (comma separated)</label>
+                    <div className="relative">
+                      <Code className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                      <input type="text" value={formData.skills} onChange={(e) => update('skills', e.target.value)} placeholder="React, Python, SQL" className="input-neon w-full !pl-10" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Resume URL (Optional)</label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                      <input type="url" value={formData.resumeUrl} onChange={(e) => update('resumeUrl', e.target.value)} placeholder="https://..." className="input-neon w-full !pl-10" />
+                    </div>
+                  </div>
+                </>
               )}
             </motion.div>
           )}
@@ -141,10 +231,20 @@ export default function RegisterPage() {
                 <div className="flex justify-between"><span className="text-sm text-[#484f58]">Role</span><span className="text-sm text-white capitalize">{role}</span></div>
                 <div className="flex justify-between"><span className="text-sm text-[#484f58]">Name</span><span className="text-sm text-white">{formData.name || '—'}</span></div>
                 <div className="flex justify-between"><span className="text-sm text-[#484f58]">Email</span><span className="text-sm text-white">{formData.email || '—'}</span></div>
-                {role === 'recruiter' && <div className="flex justify-between"><span className="text-sm text-[#484f58]">Company</span><span className="text-sm text-white">{formData.company || '—'}</span></div>}
+                {role === 'recruiter' ? (
+                  <>
+                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Company</span><span className="text-sm text-white">{formData.company || '—'}</span></div>
+                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Job Title</span><span className="text-sm text-white">{formData.jobTitle || '—'}</span></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">University</span><span className="text-sm text-white">{formData.university || '—'}</span></div>
+                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Grad. Year</span><span className="text-sm text-white">{formData.graduationYear || '—'}</span></div>
+                  </>
+                )}
               </div>
               <div className="flex items-start gap-2">
-                <input type="checkbox" id="terms" className="mt-1 w-4 h-4 rounded border-[#21262d] bg-[#161b22] accent-[#0066ff]" />
+                <input type="checkbox" id="terms" required className="mt-1 w-4 h-4 rounded border-[#21262d] bg-[#161b22] accent-[#0066ff]" />
                 <label htmlFor="terms" className="text-xs text-[#8b949e]">
                   I agree to the <a href="#" className="text-[#00d4ff] hover:underline">Terms of Service</a> and <a href="#" className="text-[#00d4ff] hover:underline">Privacy Policy</a>
                 </label>
@@ -169,18 +269,6 @@ export default function RegisterPage() {
             </button>
           </div>
 
-          {step === 0 && (
-            <>
-              <div className="flex items-center gap-4 mt-6">
-                <div className="flex-1 h-px bg-[#21262d]" />
-                <span className="text-xs text-[#484f58]">or</span>
-                <div className="flex-1 h-px bg-[#21262d]" />
-              </div>
-              <button type="button" className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#21262d] bg-[#161b22]/50 text-sm font-medium text-[#8b949e] hover:text-white hover:border-[#30363d] transition-all">
-                <Globe className="w-4 h-4" /> Sign up with Google
-              </button>
-            </>
-          )}
         </form>
       </motion.div>
     </div>

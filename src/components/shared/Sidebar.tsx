@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/lib/store/auth-store';
 import { useUIStore } from '@/lib/store/ui-store';
 import {
   LayoutDashboard, Code2, FileText, Trophy, BarChart3,
@@ -37,7 +38,14 @@ const adminLinks = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
 
   const isAdmin = pathname.startsWith('/admin');
   const links = isAdmin ? adminLinks : candidateLinks;
@@ -109,13 +117,13 @@ export default function Sidebar() {
           <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
           {sidebarOpen && <span>Help & Support</span>}
         </button>
-        <Link
-          href="/"
+        <button
+          onClick={handleLogout}
           className={`sidebar-item w-full text-[#ef4444] hover:!text-[#ef4444] hover:!bg-[#ef4444]/10 ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           {sidebarOpen && <span>Logout</span>}
-        </Link>
+        </button>
       </div>
     </motion.aside>
   );

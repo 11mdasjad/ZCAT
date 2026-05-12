@@ -30,7 +30,11 @@ const activityIcons: Record<string, string> = {
   contest: '#ec4899',
 };
 
+import { useAuthStore } from '@/lib/store/auth-store';
+
 export default function CandidateDashboard() {
+  const { user } = useAuthStore();
+  
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -40,7 +44,7 @@ export default function CandidateDashboard() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold text-white">Welcome back, <span className="gradient-text">Asjad</span> 👋</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome back, <span className="gradient-text">{user?.name ? user.name.split(' ')[0] : 'User'}</span> 👋</h1>
           <p className="text-sm text-[#8b949e] mt-1">Here&apos;s your assessment overview for today.</p>
         </div>
         <Link href="/candidate/challenges" className="btn-neon btn-neon-primary flex items-center gap-2 text-sm self-start">

@@ -5,30 +5,50 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
-import { useAuthStore } from '@/lib/store/auth-store';
-import type { Role } from '@/types/user';
-
-const roles: { value: Role; label: string; desc: string }[] = [
-  { value: 'candidate', label: 'Student / Candidate', desc: 'Take assessments & coding tests' },
-  { value: 'admin', label: 'Admin / Recruiter', desc: 'Create & manage assessments' },
-];
+import { createClient } from '@/lib/supabase/client';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role>('candidate');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuthStore();
   const router = useRouter();
+  const supabase = createClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
     setLoading(true);
-    login(email || 'demo@zcat.dev', password, selectedRole);
-    setTimeout(() => {
-      router.push(selectedRole === 'admin' ? '/admin' : '/candidate');
-    }, 1000);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else if (data.user) {
+      toast.success('Logged in successfully!');
+      
+      // Fetch role to route properly
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+        
+      if (profile?.role === 'admin' || profile?.role === 'recruiter') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/candidate';
+      }
+    }
   };
 
   return (
@@ -45,7 +65,7 @@ export default function LoginPage() {
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center mx-auto mb-8 shadow-[0_0_60px_rgba(0,102,255,0.3)]">
             <Zap className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-4xl font-bold text-white mb-4">Welcome to <span className="gradient-text">ZCAT</span></h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Welcome back to <span className="gradient-text">ZCAT</span></h2>
           <p className="text-[#8b949e] text-lg max-w-md mx-auto">AI-powered assessment platform for smart hiring, testing, and skill evaluation.</p>
           
           {/* Floating stats */}
@@ -87,25 +107,6 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role Selector */}
-            <div className="grid grid-cols-2 gap-3">
-              {roles.map((role) => (
-                <button
-                  key={role.value}
-                  type="button"
-                  onClick={() => setSelectedRole(role.value)}
-                  className={`p-3 rounded-xl border text-left transition-all duration-200 ${
-                    selectedRole === role.value
-                      ? 'border-[#0066ff]/50 bg-[#0066ff]/10'
-                      : 'border-[#21262d] bg-[#161b22]/50 hover:border-[#30363d]'
-                  }`}
-                >
-                  <p className="text-sm font-medium text-white">{role.label}</p>
-                  <p className="text-xs text-[#484f58] mt-0.5">{role.desc}</p>
-                </button>
-              ))}
-            </div>
-
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Email</label>
@@ -116,6 +117,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
+                  required
                   className="input-neon w-full !pl-10"
                 />
               </div>
@@ -134,6 +136,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
+                  required
                   className="input-neon w-full !pl-10 !pr-10"
                 />
                 <button
@@ -163,21 +166,6 @@ export default function LoginPage() {
               ) : (
                 <>Sign In <ArrowRight className="w-4 h-4" /></>
               )}
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-[#21262d]" />
-              <span className="text-xs text-[#484f58]">or continue with</span>
-              <div className="flex-1 h-px bg-[#21262d]" />
-            </div>
-
-            {/* Google */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#21262d] bg-[#161b22]/50 text-sm font-medium text-[#8b949e] hover:text-white hover:border-[#30363d] transition-all"
-            >
-              <Globe className="w-4 h-4" /> Google
             </button>
           </form>
         </motion.div>

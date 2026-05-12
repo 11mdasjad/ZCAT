@@ -1,38 +1,96 @@
 import { create } from 'zustand';
-import { User, Role } from '@/types/user';
+import { User } from '@/types/user';
+import { createClient } from '@/lib/supabase/client';
 
 interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, role: Role) => void;
-  logout: () => void;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
+  setLoading: (isLoading: boolean) => void;
+  logout: () => Promise<void>;
+  initialize: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
-  login: (email: string, _password: string, role: Role) => {
-    set({ isLoading: true });
-    // Simulate login
-    setTimeout(() => {
-      set({
-        user: {
-          id: '1',
-          name: role === 'admin' ? 'Admin User' : 'Asjad Ahmed',
-          email,
-          role,
-          skills: ['React', 'TypeScript', 'Python'],
-          bio: 'Full-stack developer',
-          joinedAt: new Date().toISOString(),
-        },
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    }, 800);
+  isLoading: true,
+  setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
+  setLoading: (isLoading) => set({ isLoading }),
+  logout: async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    set({ user: null, isAuthenticated: false });
   },
-  logout: () => set({ user: null, isAuthenticated: false }),
-  setUser: (user) => set({ user, isAuthenticated: true }),
+  initialize: async () => {
+    const supabase = createClient();
+    
+    // Check active session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      // Fetch profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile) {
+        set({
+          user: {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+            avatar: profile.avatar_url,
+            company: profile.company_name,
+            college: profile.university,
+            skills: profile.skills,
+            bio: profile.bio,
+            joinedAt: profile.created_at,
+          },
+          isAuthenticated: true,
+          isLoading: false
+        });
+      } else {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    } else {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+
+    // Set up listener for auth changes (e.g., login in another tab)
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        set({ user: null, isAuthenticated: false });
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (profile) {
+          set({
+            user: {
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              role: profile.role,
+              avatar: profile.avatar_url,
+              company: profile.company_name,
+              college: profile.university,
+              skills: profile.skills,
+              bio: profile.bio,
+              joinedAt: profile.created_at,
+            },
+            isAuthenticated: true,
+            isLoading: false
+          });
+        }
+      }
+    });
+  }
 }));

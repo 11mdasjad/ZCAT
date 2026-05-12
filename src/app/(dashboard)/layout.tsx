@@ -3,11 +3,13 @@
 import { ReactNode } from 'react';
 import Sidebar from '@/components/shared/Sidebar';
 import { useUIStore } from '@/lib/store/ui-store';
+import { useAuthStore } from '@/lib/store/auth-store';
 import { Bell, Search, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { sidebarOpen } = useUIStore();
+  const { user } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-[#06080f]">
@@ -34,11 +36,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ef4444] rounded-full" />
             </button>
-            <Link href="/candidate/profile" className="flex items-center gap-2 pl-4 border-l border-[#21262d]">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white hidden sm:block">Asjad</span>
+            <Link href={user?.role === 'admin' || user?.role === 'recruiter' ? '/admin/settings' : '/candidate/profile'} className="flex items-center gap-2 pl-4 border-l border-[#21262d]">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
+              <span className="text-sm font-medium text-white hidden sm:block">
+                {user?.name || 'User'}
+              </span>
             </Link>
           </div>
         </header>
