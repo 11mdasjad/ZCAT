@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ZCAT — AI-Powered Assessment Platform
 
-## Getting Started
+![ZCAT Banner](https://images.unsplash.com/photo-1614064641938-3bbee52942c7?q=80&w=2070&auto=format&fit=crop)
 
-First, run the development server:
+ZCAT is an enterprise-grade, futuristic assessment and coding platform designed for high-stakes examinations, technical recruitment, and campus hiring. Built with a focus on integrity, scalability, and user experience.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Key Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **AI Proctoring**: Real-time face detection, tab monitoring, and audio analysis to ensure exam integrity.
+- **Advanced Code Editor**: Full-screen coding environment with multi-language support (Python, JS, Java, C++, C) and real-time execution.
+- **Live Monitoring**: Dashboard for recruiters to monitor candidate webcam feeds and violation logs in real-time.
+- **AI Interview Prep**: Interactive AI-powered technical interviews with instant behavioral scoring.
+- **Comprehensive Analytics**: Skill heatmaps, performance trends, and ranking systems for candidates and admins.
+- **Glassmorphism UI**: Ultra-modern, premium dark-neon theme with smooth Framer Motion animations.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
+- **Editor**: [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+- **Particles**: [tsParticles](https://particles.js.org/)
 
-## Learn More
+## 📦 Getting Started
 
-To learn more about Next.js, take a look at the following resources:
+### Prerequisites
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Node.js 18.x or higher
+- npm or pnpm
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Installation
 
-## Deploy on Vercel
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/zcat.git
+   cd zcat
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 📁 Project Structure
+
+- `src/app/`: Next.js App Router (pages and layouts)
+- `src/components/`: Reusable UI components (Shared, Landing, Dashboard)
+- `src/lib/`: Utility functions, mock data, and global stores
+- `src/types/`: TypeScript interfaces and definitions
+- `src/styles/`: Global styles and Tailwind configurations
+
+## 🛡️ Security & Integrity
+
+ZCAT employs multiple layers of security:
+- **Browser Lockdown**: Prevents tab switching and copy-paste during exams.
+- **Face Tracking**: Detects multiple faces, missing faces, or unrecognized individuals.
+- **Activity Logging**: Full audit trail of every candidate action.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Built with ❤️ by the ZCAT Team.
