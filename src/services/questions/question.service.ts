@@ -4,7 +4,7 @@ import {
   QuestionFilters,
   QuestionWithTestCases,
 } from '@/repositories/question.repository';
-import { AppError } from '@/lib/errors/app-error';
+import { AppError, createError } from '@/lib/errors/app-error';
 import { logger } from '@/lib/logger/logger';
 
 export interface QuestionListParams {
@@ -65,7 +65,7 @@ export class QuestionService {
       };
     } catch (error) {
       logger.error('Failed to fetch questions', { error, params });
-      throw new AppError('Failed to fetch questions', 500);
+      throw createError.internal('Failed to fetch questions');
     }
   }
 
@@ -86,11 +86,11 @@ export class QuestionService {
       );
 
       if (!question) {
-        throw new AppError('Question not found', 404);
+        throw createError.notFound('Question not found');
       }
 
       if (!question.isActive) {
-        throw new AppError('Question is not available', 403);
+        throw createError.forbidden('Question is not available');
       }
 
       logger.info('Question fetched', { questionId: id, userId });
@@ -99,7 +99,7 @@ export class QuestionService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error('Failed to fetch question', { error, id });
-      throw new AppError('Failed to fetch question', 500);
+      throw createError.internal('Failed to fetch question');
     }
   }
 
@@ -119,11 +119,11 @@ export class QuestionService {
       );
 
       if (!question) {
-        throw new AppError('Question not found', 404);
+        throw createError.notFound('Question not found');
       }
 
       if (!question.isActive) {
-        throw new AppError('Question is not available', 403);
+        throw createError.forbidden('Question is not available');
       }
 
       logger.info('Question fetched by slug', { slug, userId });
@@ -132,7 +132,7 @@ export class QuestionService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error('Failed to fetch question by slug', { error, slug });
-      throw new AppError('Failed to fetch question', 500);
+      throw createError.internal('Failed to fetch question');
     }
   }
 
@@ -144,7 +144,7 @@ export class QuestionService {
       const question = await questionRepository.getRandomByDifficulty(difficulty);
 
       if (!question) {
-        throw new AppError('No questions available', 404);
+        throw createError.notFound('No questions available');
       }
 
       logger.info('Random question fetched', { difficulty });
@@ -153,7 +153,7 @@ export class QuestionService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error('Failed to fetch random question', { error, difficulty });
-      throw new AppError('Failed to fetch random question', 500);
+      throw createError.internal('Failed to fetch random question');
     }
   }
 
@@ -167,7 +167,7 @@ export class QuestionService {
       return tags;
     } catch (error) {
       logger.error('Failed to fetch tags', { error });
-      throw new AppError('Failed to fetch tags', 500);
+      throw createError.internal('Failed to fetch tags');
     }
   }
 
@@ -183,7 +183,7 @@ export class QuestionService {
       return stats;
     } catch (error) {
       logger.error('Failed to fetch difficulty stats', { error });
-      throw new AppError('Failed to fetch difficulty stats', 500);
+      throw createError.internal('Failed to fetch difficulty stats');
     }
   }
 
@@ -197,7 +197,7 @@ export class QuestionService {
       return questions;
     } catch (error) {
       logger.error('Failed to fetch popular questions', { error });
-      throw new AppError('Failed to fetch popular questions', 500);
+      throw createError.internal('Failed to fetch popular questions');
     }
   }
 
@@ -211,7 +211,7 @@ export class QuestionService {
       return questions;
     } catch (error) {
       logger.error('Failed to fetch questions by tags', { error, tags });
-      throw new AppError('Failed to fetch questions by tags', 500);
+      throw createError.internal('Failed to fetch questions by tags');
     }
   }
 
@@ -223,7 +223,7 @@ export class QuestionService {
       const question = await questionRepository.findByIdWithTestCases(id, true);
 
       if (!question) {
-        throw new AppError('Question not found', 404);
+        throw createError.notFound('Question not found');
       }
 
       logger.info('Question with hidden tests fetched', { questionId: id });
@@ -232,7 +232,7 @@ export class QuestionService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error('Failed to fetch question with hidden tests', { error, id });
-      throw new AppError('Failed to fetch question', 500);
+      throw createError.internal('Failed to fetch question');
     }
   }
 
@@ -246,7 +246,7 @@ export class QuestionService {
       return question;
     } catch (error) {
       logger.error('Failed to update question status', { error, id, isActive });
-      throw new AppError('Failed to update question status', 500);
+      throw createError.internal('Failed to update question status');
     }
   }
 }

@@ -1,0 +1,238 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   🚨 URGENT: Your DATABASE_URL format is correct but connection fails       ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+DIAGNOSIS:
+──────────────────────────────────────────────────────────────────────────────
+
+✅ DATABASE_URL format is correct
+✅ Port 6543 (Transaction Pooler) - Correct
+✅ Password is URL-encoded
+✅ User format is correct
+✅ Host format is correct
+
+❌ But connection still fails with "Tenant or user not found"
+
+This means ONE of these is the problem:
+1. Password is incorrect
+2. Supabase project is paused
+3. Network/firewall issue
+
+
+SOLUTION 1: Check if Project is Paused (MOST COMMON)
+══════════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://supabase.com/dashboard
+2. Click your project: clzkcwjhyjddknyzphgf
+3. Look at the top of the page
+
+   If you see a banner saying:
+   "⚠️  Project is paused"
+   
+   Then:
+   a. Click "Restore Project" or "Unpause Project"
+   b. Wait 1-2 minutes for project to start
+   c. Try again: npx prisma db pull
+
+   ✅ This is the most common issue!
+
+
+SOLUTION 2: Reset Database Password
+══════════════════════════════════════════════════════════════════════════════
+
+Your password might be incorrect. Let's reset it:
+
+1. Go to: https://supabase.com/dashboard
+2. Click your project: clzkcwjhyjddknyzphgf
+3. Click: Settings (⚙️) → Database
+4. Scroll to "Database Password" section
+5. Click: "Reset Database Password"
+6. Copy the NEW password
+7. SAVE IT SOMEWHERE SAFE!
+
+8. URL-encode the new password:
+   @ → %40
+   # → %23
+   $ → %24
+   % → %25
+   & → %26
+
+9. Update your .env file:
+
+   DATABASE_URL="postgresql://postgres.clzkcwjhyjddknyzphgf:[NEW-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+   DIRECT_URL="postgresql://postgres.clzkcwjhyjddknyzphgf:[NEW-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+
+10. Test: npx prisma db pull
+
+
+SOLUTION 3: Verify Project Details
+══════════════════════════════════════════════════════════════════════════════
+
+Make sure you're using the correct project:
+
+1. Go to: https://supabase.com/dashboard
+2. Find project: clzkcwjhyjddknyzphgf
+3. Click: Settings → Database
+4. Check "Connection String" section
+5. Click "Transaction" tab
+6. Copy the EXACT string shown
+7. Replace your DATABASE_URL with this EXACT string
+8. Add ?pgbouncer=true to the end if not present
+
+
+SOLUTION 4: Check Connection Pooling Settings
+══════════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://supabase.com/dashboard
+2. Click your project: clzkcwjhyjddknyzphgf
+3. Click: Settings → Database
+4. Scroll to "Connection Pooling" section
+5. Make sure "Connection Pooling" is ENABLED
+6. If disabled, enable it
+7. Wait 1 minute
+8. Try again: npx prisma db pull
+
+
+QUICK TEST COMMANDS
+══════════════════════════════════════════════════════════════════════════════
+
+Run these in order:
+
+1. Check configuration:
+   node test-connection.js
+
+2. Test connection:
+   npx prisma db pull
+
+3. If successful, create tables:
+   npx prisma generate
+   npx prisma db push
+   npx prisma db seed
+
+4. Start server:
+   npm run dev
+
+
+WHAT TO DO RIGHT NOW
+══════════════════════════════════════════════════════════════════════════════
+
+STEP 1: Check if project is paused
+────────────────────────────────────────────────────────────────────────────────
+Go to Supabase Dashboard and check project status.
+If paused, unpause it.
+
+STEP 2: Reset database password
+────────────────────────────────────────────────────────────────────────────────
+Settings → Database → Reset Database Password
+Copy new password, URL-encode it, update .env
+
+STEP 3: Test connection
+────────────────────────────────────────────────────────────────────────────────
+npx prisma db pull
+
+STEP 4: If still fails, copy exact connection string
+────────────────────────────────────────────────────────────────────────────────
+Settings → Database → Connection String → Transaction tab
+Copy EXACT string, update .env
+
+
+ERROR MESSAGES AND SOLUTIONS
+══════════════════════════════════════════════════════════════════════════════
+
+"Tenant or user not found"
+→ Project paused OR password wrong
+→ Check project status, reset password
+
+"Password authentication failed"
+→ Password is wrong
+→ Reset password in Supabase
+
+"Connection timed out"
+→ Network issue or project paused
+→ Check internet, check project status
+
+"SSL connection required"
+→ Missing SSL parameter
+→ Add ?sslmode=require to connection string
+
+
+AFTER YOU FIX THE CONNECTION
+══════════════════════════════════════════════════════════════════════════════
+
+Once npx prisma db pull succeeds:
+
+1. Generate Prisma Client:
+   npx prisma generate
+
+2. Create all tables:
+   npx prisma db push
+
+3. Seed 203 questions:
+   npx prisma db seed
+
+4. Setup Supabase triggers:
+   - Run supabase/user-sync-trigger.sql in SQL Editor
+   - Run supabase/storage-buckets-setup.sql in SQL Editor
+
+5. Test your app:
+   npm run dev
+   Open: http://localhost:3001/register
+
+
+VISUAL CHECKLIST
+══════════════════════════════════════════════════════════════════════════════
+
+□ Go to Supabase Dashboard
+□ Check if project clzkcwjhyjddknyzphgf is paused
+□ If paused, unpause it
+□ Go to Settings → Database
+□ Reset database password
+□ Copy new password
+□ URL-encode special characters
+□ Update .env file with new password
+□ Save .env file
+□ Run: node test-connection.js
+□ Run: npx prisma db pull
+□ If success, run: npx prisma db push
+□ Run: npx prisma db seed
+□ Test app: npm run dev
+
+
+MOST LIKELY ISSUE
+══════════════════════════════════════════════════════════════════════════════
+
+Based on the error "Tenant or user not found", the most likely causes are:
+
+1. 🔴 PROJECT IS PAUSED (90% chance)
+   → Go unpause it in Supabase Dashboard
+
+2. 🟡 PASSWORD IS WRONG (9% chance)
+   → Reset password in Supabase
+
+3. 🟢 OTHER ISSUE (1% chance)
+   → Check connection pooling, network, etc.
+
+
+START HERE
+══════════════════════════════════════════════════════════════════════════════
+
+1. Open: https://supabase.com/dashboard
+2. Look for project: clzkcwjhyjddknyzphgf
+3. Check if it says "PAUSED" or has a pause icon
+4. If paused, click "Restore" or "Unpause"
+5. Wait 1-2 minutes
+6. Run: npx prisma db pull
+7. Should work now!
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   🎯 ACTION: Check if your Supabase project is paused                       ║
+║                                                                              ║
+║   URL: https://supabase.com/dashboard                                       ║
+║   Project: clzkcwjhyjddknyzphgf                                             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

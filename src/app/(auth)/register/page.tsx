@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Zap, Mail, Lock, User, Building2, ArrowRight, ArrowLeft, Globe, Check, GraduationCap, Calendar, FileText, Briefcase, Code } from 'lucide-react';
+import { Zap, Mail, Lock, User, Building2, ArrowRight, ArrowLeft, Globe, Check, GraduationCap, Calendar, FileText, Code } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 
@@ -12,10 +12,10 @@ const steps = ['Account', 'Details', 'Confirm'];
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0);
-  const [role, setRole] = useState<'candidate' | 'recruiter'>('candidate');
+  // Locked to candidate role only - recruiters must contact admin
+  const role = 'candidate';
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', confirmPassword: '', 
-    company: '', jobTitle: '',
     university: '', graduationYear: '', resumeUrl: '', skills: ''
   });
   const [loading, setLoading] = useState(false);
@@ -122,19 +122,26 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-7">
           {step === 0 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
-              <div className="grid grid-cols-2 gap-3">
-                {(['candidate', 'recruiter'] as const).map((r) => (
-                  <button key={r} type="button" onClick={() => setRole(r)} className={`p-3 rounded-xl border text-left transition-all ${
-                    role === r ? 'border-[#0066ff]/50 bg-[#0066ff]/10' : 'border-[#21262d] bg-[#161b22]/50'
-                  }`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      {r === 'candidate' ? <User className="w-4 h-4 text-[#00d4ff]" /> : <Building2 className="w-4 h-4 text-[#a855f7]" />}
-                      <span className="text-sm font-medium text-white capitalize">{r}</span>
-                    </div>
-                    <p className="text-xs text-[#484f58]">{r === 'candidate' ? 'Take tests & challenges' : 'Create & manage assessments'}</p>
-                  </button>
-                ))}
+              {/* Recruiter Contact Banner */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-[#a855f7]/10 to-[#ec4899]/10 border border-[#a855f7]/20">
+                <div className="flex items-start gap-3">
+                  <Building2 className="w-5 h-5 text-[#a855f7] mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-white mb-1">Are you a recruiter?</h4>
+                    <p className="text-xs text-[#8b949e] mb-3">
+                      Recruiter accounts require admin approval for security and quality control.
+                    </p>
+                    <Link 
+                      href="mailto:admin@zcat.com?subject=Recruiter%20Account%20Request"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#a855f7]/20 border border-[#a855f7]/30 text-xs font-medium text-[#a855f7] hover:bg-[#a855f7]/30 transition-all"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      Contact Admin for Access
+                    </Link>
+                  </div>
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Full Name</label>
                 <div className="relative">
@@ -173,57 +180,37 @@ export default function RegisterPage() {
               
               <div className="h-px bg-[#21262d] my-4" />
 
-              {role === 'recruiter' ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Company Name</label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                      <input type="text" value={formData.company} onChange={(e) => update('company', e.target.value)} placeholder="Acme Corp" className="input-neon w-full !pl-10" />
-                    </div>
+              {/* Candidate Profile Fields */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#8b949e] mb-1.5">University / College</label>
+                  <div className="relative">
+                    <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                    <input type="text" value={formData.university} onChange={(e) => update('university', e.target.value)} placeholder="MIT" className="input-neon w-full !pl-10" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Job Title</label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                      <input type="text" value={formData.jobTitle} onChange={(e) => update('jobTitle', e.target.value)} placeholder="HR Manager" className="input-neon w-full !pl-10" />
-                    </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Graduation Year</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                    <input type="number" min="2000" max="2035" value={formData.graduationYear} onChange={(e) => update('graduationYear', e.target.value)} placeholder="2025" className="input-neon w-full !pl-10" />
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b949e] mb-1.5">University / College</label>
-                      <div className="relative">
-                        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                        <input type="text" value={formData.university} onChange={(e) => update('university', e.target.value)} placeholder="MIT" className="input-neon w-full !pl-10" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Graduation Year</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                        <input type="number" min="2000" max="2035" value={formData.graduationYear} onChange={(e) => update('graduationYear', e.target.value)} placeholder="2025" className="input-neon w-full !pl-10" />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Top Skills (comma separated)</label>
-                    <div className="relative">
-                      <Code className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                      <input type="text" value={formData.skills} onChange={(e) => update('skills', e.target.value)} placeholder="React, Python, SQL" className="input-neon w-full !pl-10" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Resume URL (Optional)</label>
-                    <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-                      <input type="url" value={formData.resumeUrl} onChange={(e) => update('resumeUrl', e.target.value)} placeholder="https://..." className="input-neon w-full !pl-10" />
-                    </div>
-                  </div>
-                </>
-              )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Top Skills (comma separated)</label>
+                <div className="relative">
+                  <Code className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input type="text" value={formData.skills} onChange={(e) => update('skills', e.target.value)} placeholder="React, Python, SQL" className="input-neon w-full !pl-10" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Resume URL (Optional)</label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input type="url" value={formData.resumeUrl} onChange={(e) => update('resumeUrl', e.target.value)} placeholder="https://..." className="input-neon w-full !pl-10" />
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -237,20 +224,11 @@ export default function RegisterPage() {
                 <p className="text-sm text-[#8b949e]">Please verify your details before creating your account.</p>
               </div>
               <div className="space-y-3 bg-[#161b22]/50 rounded-xl p-4">
-                <div className="flex justify-between"><span className="text-sm text-[#484f58]">Role</span><span className="text-sm text-white capitalize">{role}</span></div>
+                <div className="flex justify-between"><span className="text-sm text-[#484f58]">Role</span><span className="text-sm text-white">Candidate</span></div>
                 <div className="flex justify-between"><span className="text-sm text-[#484f58]">Name</span><span className="text-sm text-white">{formData.name || '—'}</span></div>
                 <div className="flex justify-between"><span className="text-sm text-[#484f58]">Email</span><span className="text-sm text-white">{formData.email || '—'}</span></div>
-                {role === 'recruiter' ? (
-                  <>
-                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Company</span><span className="text-sm text-white">{formData.company || '—'}</span></div>
-                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Job Title</span><span className="text-sm text-white">{formData.jobTitle || '—'}</span></div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">University</span><span className="text-sm text-white">{formData.university || '—'}</span></div>
-                    <div className="flex justify-between"><span className="text-sm text-[#484f58]">Grad. Year</span><span className="text-sm text-white">{formData.graduationYear || '—'}</span></div>
-                  </>
-                )}
+                <div className="flex justify-between"><span className="text-sm text-[#484f58]">University</span><span className="text-sm text-white">{formData.university || '—'}</span></div>
+                <div className="flex justify-between"><span className="text-sm text-[#484f58]">Grad. Year</span><span className="text-sm text-white">{formData.graduationYear || '—'}</span></div>
               </div>
               <div className="flex items-start gap-2">
                 <input type="checkbox" id="terms" required className="mt-1 w-4 h-4 rounded border-[#21262d] bg-[#161b22] accent-[#0066ff]" />

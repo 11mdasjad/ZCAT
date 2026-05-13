@@ -23,7 +23,7 @@ export async function authMiddleware(
   req: NextRequest
 ): Promise<{ user: any; error: null } | { user: null; error: NextResponse }> {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Get session from Supabase
     const {
@@ -79,7 +79,7 @@ export async function optionalAuthMiddleware(
   req: NextRequest
 ): Promise<{ user: any | null }> {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const {
       data: { session },

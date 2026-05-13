@@ -1,43 +1,112 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, AlertTriangle, Trophy, TrendingUp, Activity, ArrowRight, Eye } from 'lucide-react';
+import { Users, FileText, AlertTriangle, Trophy, TrendingUp, Activity, ArrowRight, Eye, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
-const kpiCards = [
-  { label: 'Total Candidates', value: '12,847', change: '+324 this week', icon: Users, color: '#00d4ff' },
-  { label: 'Active Exams', value: '23', change: '5 starting today', icon: FileText, color: '#a855f7' },
-  { label: 'Violations', value: '47', change: '-12% vs last week', icon: AlertTriangle, color: '#ef4444' },
-  { label: 'Top Score', value: '98.5%', change: 'Rahul Kumar', icon: Trophy, color: '#f59e0b' },
-];
+interface DashboardStats {
+  kpis: {
+    totalCandidates: { value: number; change: string };
+    activeExams: { value: number; change: string };
+    violations: { value: number; change: string };
+    topScore: { value: string; change: string };
+  };
+  recentUsers: Array<{
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    createdAt: string;
+    emailVerified: boolean;
+  }>;
+  assessmentActivity: Array<{ date: string; count: number }>;
+  skillDistribution: Array<{ name: string; value: number }>;
+  recentAssessments: Array<{
+    id: string;
+    name: string;
+    status: string;
+    candidates: number;
+    progress: number;
+  }>;
+}
 
-const assessmentData = [
-  { date: 'Mon', candidates: 120, completed: 95 },
-  { date: 'Tue', candidates: 180, completed: 150 },
-  { date: 'Wed', candidates: 250, completed: 210 },
-  { date: 'Thu', candidates: 200, completed: 175 },
-  { date: 'Fri', candidates: 310, completed: 280 },
-  { date: 'Sat', candidates: 150, completed: 130 },
-  { date: 'Sun', candidates: 90, completed: 78 },
-];
-
-const skillPieData = [
-  { name: 'Frontend', value: 35, color: '#00d4ff' },
-  { name: 'Backend', value: 28, color: '#a855f7' },
-  { name: 'Data Science', value: 20, color: '#ec4899' },
-  { name: 'DevOps', value: 10, color: '#10b981' },
-  { name: 'Mobile', value: 7, color: '#f59e0b' },
-];
-
-const recentExams = [
-  { name: 'Full Stack Assessment', candidates: 245, status: 'live', progress: 68 },
-  { name: 'Python Challenge', candidates: 180, status: 'completed', progress: 100 },
-  { name: 'Campus Hiring Round 1', candidates: 520, status: 'scheduled', progress: 0 },
-  { name: 'AI/ML Interview', candidates: 75, status: 'live', progress: 42 },
-];
+const skillColors = ['#00d4ff', '#a855f7', '#ec4899', '#10b981', '#f59e0b'];
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/admin/stats');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to fetch statistics');
+      }
+
+      const data = await response.json();
+      setStats(data.data);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin mx-auto mb-4" />
+          <p className="text-sm text-[#8b949e]">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-[#ef4444] mx-auto mb-4" />
+          <p className="text-sm text-[#8b949e]">Failed to load dashboard data</p>
+          <button onClick={fetchDashboardStats} className="btn-neon btn-neon-primary text-sm mt-4">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const kpiCards = [
+    { label: 'Total Candidates', value: stats.kpis.totalCandidates.value.toLocaleString(), change: stats.kpis.totalCandidates.change, icon: Users, color: '#00d4ff' },
+    { label: 'Active Exams', value: stats.kpis.activeExams.value.toString(), change: stats.kpis.activeExams.change, icon: FileText, color: '#a855f7' },
+    { label: 'Violations', value: stats.kpis.violations.value.toString(), change: stats.kpis.violations.change, icon: AlertTriangle, color: '#ef4444' },
+    { label: 'Top Score', value: stats.kpis.topScore.value, change: stats.kpis.topScore.change, icon: Trophy, color: '#f59e0b' },
+  ];
+
+  // Transform assessment activity data for chart
+  const assessmentData = stats.assessmentActivity.map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    candidates: item.count,
+    completed: Math.floor(item.count * 0.85), // Estimate completed
+  }));
+
+  // Add colors to skill distribution
+  const skillPieData = stats.skillDistribution.map((skill, index) => ({
+    ...skill,
+    color: skillColors[index % skillColors.length],
+  }));
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -116,9 +185,14 @@ export default function AdminDashboard() {
                   <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
                   <span className="text-[#8b949e]">{item.name}</span>
                 </div>
-                <span className="text-white font-medium">{item.value}%</span>
+                <span className="text-white font-medium">{item.value}</span>
               </div>
             ))}
+            {skillPieData.length === 0 && (
+              <div className="text-center py-4">
+                <p className="text-xs text-[#8b949e]">No skill data yet</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -127,33 +201,100 @@ export default function AdminDashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
         className="glass-card rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Recent Exams</h3>
+          <h3 className="text-lg font-semibold text-white">Recent Assessments</h3>
           <Link href="/admin/monitoring" className="text-xs text-[#00d4ff] hover:underline flex items-center gap-1">
             View All <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         <div className="space-y-3">
-          {recentExams.map((exam, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[#161b22]/30 border border-[#21262d]/50">
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-white truncate">{exam.name}</h4>
-                <p className="text-xs text-[#484f58]">{exam.candidates} candidates</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-24 h-1.5 bg-[#161b22] rounded-full overflow-hidden hidden sm:block">
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#7c3aed]" style={{ width: `${exam.progress}%` }} />
+          {stats.recentAssessments.length > 0 ? (
+            stats.recentAssessments.map((exam, i) => (
+              <div key={exam.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[#161b22]/30 border border-[#21262d]/50">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-white truncate">{exam.name}</h4>
+                  <p className="text-xs text-[#484f58]">{exam.candidates} candidates</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  exam.status === 'live' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' :
-                  exam.status === 'completed' ? 'bg-[#484f58]/10 text-[#8b949e] border border-[#484f58]/20' :
-                  'bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20'
-                }`}>{exam.status}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 h-1.5 bg-[#161b22] rounded-full overflow-hidden hidden sm:block">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#7c3aed]" style={{ width: `${exam.progress}%` }} />
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    exam.status === 'live' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' :
+                    exam.status === 'completed' ? 'bg-[#484f58]/10 text-[#8b949e] border border-[#484f58]/20' :
+                    'bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20'
+                  }`}>{exam.status}</span>
+                </div>
+                <Link href={`/admin/monitoring?assessment=${exam.id}`} className="p-2 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all">
+                  <Eye className="w-4 h-4" />
+                </Link>
               </div>
-              <button className="p-2 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all">
-                <Eye className="w-4 h-4" />
-              </button>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="w-8 h-8 text-[#484f58] mx-auto mb-2" />
+              <p className="text-sm text-[#8b949e]">No assessments yet</p>
             </div>
-          ))}
+          )}
+        </div>
+      </motion.div>
+
+      {/* Recent Users */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+        className="glass-card rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Recent Users</h3>
+          <Link href="/admin/candidates" className="text-xs text-[#00d4ff] hover:underline flex items-center gap-1">
+            View All <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-xs text-[#8b949e] border-b border-[#21262d]">
+                <th className="pb-3 font-medium">Name</th>
+                <th className="pb-3 font-medium">Email</th>
+                <th className="pb-3 font-medium">Role</th>
+                <th className="pb-3 font-medium">Joined</th>
+                <th className="pb-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.recentUsers.length > 0 ? (
+                stats.recentUsers.map((user) => (
+                  <tr key={user.id} className="text-sm border-b border-[#21262d]/50 last:border-0">
+                    <td className="py-3 text-white">{user.name}</td>
+                    <td className="py-3 text-[#8b949e]">{user.email}</td>
+                    <td className="py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        user.role === 'CANDIDATE' ? 'bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20' :
+                        user.role === 'RECRUITER' ? 'bg-[#a855f7]/10 text-[#a855f7] border border-[#a855f7]/20' :
+                        'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="py-3 text-[#8b949e]">
+                      {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </td>
+                    <td className="py-3">
+                      {user.emailVerified ? (
+                        <span className="text-xs text-[#10b981]">✓ Verified</span>
+                      ) : (
+                        <span className="text-xs text-[#f59e0b]">Pending</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center">
+                    <Users className="w-8 h-8 text-[#484f58] mx-auto mb-2" />
+                    <p className="text-sm text-[#8b949e]">No users yet</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </motion.div>
     </div>

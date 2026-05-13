@@ -1,51 +1,383 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { User, Mail, Briefcase, MapPin, Upload, Save, Plus, X } from 'lucide-react';
-
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User, Mail, Briefcase, MapPin, Upload, Save, Plus, X, 
+  Loader2, Check, AlertCircle, GraduationCap, Calendar, 
+  Globe, FileText, Phone, Clock
+} from 'lucide-react';
 import { useAuthStore } from '@/lib/store/auth-store';
+import toast from 'react-hot-toast';
+
+interface ProfileData {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatarUrl: string | null;
+  profile: {
+    bio: string | null;
+    phone: string | null;
+    location: string | null;
+    timezone: string | null;
+  } | null;
+  candidateProfile: {
+    university: string | null;
+    graduationYear: number | null;
+    resumeUrl: string | null;
+    skills: string[];
+    githubUrl: string | null;
+    linkedinUrl: string | null;
+    portfolioUrl: string | null;
+  } | null;
+}
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
-  const [skills, setSkills] = useState(['React', 'TypeScript', 'Python', 'Node.js', 'MongoDB']);
+  const { user: authUser } = useAuthStore();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [newSkill, setNewSkill] = useState('');
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
-  const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
-      setNewSkill('');
+  // Fetch profile data
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/profile');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const data = await response.json();
+      setProfile(data.data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Auto-save with debounce
+  const autoSave = useCallback((updates: any) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setSaving(true);
+        const response = await fetch('/api/v1/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save profile');
+        }
+
+        const data = await response.json();
+        setProfile(data.data);
+        setLastSaved(new Date());
+        toast.success('Changes saved', { duration: 2000 });
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        toast.error('Failed to save changes');
+      } finally {
+        setSaving(false);
+      }
+    }, 1000); // 1 second debounce
+  }, []);
+
+  // Handle field changes
+  const handleFieldChange = (field: string, value: any) => {
+    if (!profile) return;
+
+    // Update local state immediately
+    setProfile((prev) => {
+      if (!prev) return prev;
+      
+      if (field === 'name') {
+        return { ...prev, name: value };
+      } else if (['bio', 'phone', 'location', 'timezone'].includes(field)) {
+        return {
+          ...prev,
+          profile: { ...prev.profile, [field]: value } as any,
+        };
+      } else if (['university', 'graduationYear', 'githubUrl', 'linkedinUrl', 'portfolioUrl'].includes(field)) {
+        return {
+          ...prev,
+          candidateProfile: { ...prev.candidateProfile, [field]: value } as any,
+        };
+      }
+      return prev;
+    });
+
+    // Trigger auto-save
+    autoSave({ [field]: value });
+  };
+
+  // Handle skills
+  const addSkill = () => {
+    if (!profile?.candidateProfile || !newSkill.trim()) return;
+    
+    const skills = profile.candidateProfile.skills || [];
+    if (skills.includes(newSkill.trim())) {
+      toast.error('Skill already added');
+      return;
+    }
+
+    const updatedSkills = [...skills, newSkill.trim()];
+    setProfile({
+      ...profile,
+      candidateProfile: { ...profile.candidateProfile, skills: updatedSkills },
+    });
+    setNewSkill('');
+    autoSave({ skills: updatedSkills });
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    if (!profile?.candidateProfile) return;
+    
+    const updatedSkills = profile.candidateProfile.skills.filter((s) => s !== skillToRemove);
+    setProfile({
+      ...profile,
+      candidateProfile: { ...profile.candidateProfile, skills: updatedSkills },
+    });
+    autoSave({ skills: updatedSkills });
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'avatar');
+
+      const response = await fetch('/api/v1/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+
+      const data = await response.json();
+      const avatarUrl = data.data.url;
+
+      // Update profile with new avatar URL
+      await fetch('/api/v1/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl }),
+      });
+
+      setProfile((prev) => prev ? { ...prev, avatarUrl } : prev);
+      toast.success('Avatar updated successfully');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // Handle resume upload
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a PDF or DOC file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Resume size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingResume(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'resume');
+
+      const response = await fetch('/api/v1/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload resume');
+      }
+
+      const data = await response.json();
+      const resumeUrl = data.data.url;
+
+      // Update profile with new resume URL
+      await fetch('/api/v1/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl }),
+      });
+
+      setProfile((prev) => 
+        prev && prev.candidateProfile
+          ? { ...prev, candidateProfile: { ...prev.candidateProfile, resumeUrl } }
+          : prev
+      );
+      toast.success('Resume uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      toast.error('Failed to upload resume');
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin mx-auto mb-4" />
+          <p className="text-sm text-[#8b949e]">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-[#ef4444] mx-auto mb-4" />
+          <p className="text-sm text-[#8b949e]">Failed to load profile</p>
+          <button onClick={fetchProfile} className="btn-neon btn-neon-primary text-sm mt-4">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Profile</h1>
-        <p className="text-sm text-[#8b949e] mt-1">Manage your personal information and preferences.</p>
+      {/* Header with Auto-save Indicator */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Profile</h1>
+          <p className="text-sm text-[#8b949e] mt-1">Manage your personal information and preferences.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <AnimatePresence mode="wait">
+            {saving ? (
+              <motion.div
+                key="saving"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20"
+              >
+                <Loader2 className="w-3.5 h-3.5 text-[#f59e0b] animate-spin" />
+                <span className="text-xs text-[#f59e0b]">Saving...</span>
+              </motion.div>
+            ) : lastSaved ? (
+              <motion.div
+                key="saved"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20"
+              >
+                <Check className="w-3.5 h-3.5 text-[#10b981]" />
+                <span className="text-xs text-[#10b981]">
+                  Saved {lastSaved.toLocaleTimeString()}
+                </span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Avatar Section */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6">
         <div className="flex items-center gap-6">
           <div className="relative">
-            {user?.avatar_url ? (
-              <img src={user.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
+            {profile.avatarUrl ? (
+              <img 
+                src={profile.avatarUrl} 
+                alt="Avatar" 
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#21262d]" 
+              />
             ) : (
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
                 <User className="w-10 h-10 text-white" />
               </div>
             )}
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#161b22] border border-[#21262d] flex items-center justify-center text-[#8b949e] hover:text-white transition-colors">
-              <Upload className="w-3.5 h-3.5" />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#161b22] border border-[#21262d] flex items-center justify-center text-[#8b949e] hover:text-white hover:border-[#00d4ff] transition-all disabled:opacity-50"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
             </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">{user?.name || 'User'}</h3>
-            <p className="text-sm text-[#8b949e]">{user?.email || 'email@example.com'}</p>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20 mt-1 capitalize">{user?.role || 'Candidate'}</span>
+            <h3 className="text-lg font-semibold text-white">{profile.name}</h3>
+            <p className="text-sm text-[#8b949e]">{profile.email}</p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20 mt-1 capitalize">
+              {profile.role.toLowerCase()}
+            </span>
           </div>
         </div>
+        <p className="text-xs text-[#484f58] mt-4">
+          Click the upload button to change your avatar. Supported formats: JPEG, PNG, WebP, GIF (max 5MB)
+        </p>
       </motion.div>
 
       {/* Personal Info */}
@@ -56,71 +388,265 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Full Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="text" defaultValue={user?.name || ''} className="input-neon w-full !pl-10" />
+              <input
+                type="text"
+                value={profile.name}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                className="input-neon w-full !pl-10"
+                placeholder="Your full name"
+              />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="email" defaultValue={user?.email || ''} className="input-neon w-full !pl-10" />
+              <input
+                type="email"
+                value={profile.email}
+                disabled
+                className="input-neon w-full !pl-10 opacity-60 cursor-not-allowed"
+              />
             </div>
+            <p className="text-xs text-[#484f58] mt-1">Email cannot be changed</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#8b949e] mb-1.5">College / Company</label>
+            <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Phone</label>
             <div className="relative">
-              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="text" defaultValue="IIT Delhi" className="input-neon w-full !pl-10" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+              <input
+                type="tel"
+                value={profile.profile?.phone || ''}
+                onChange={(e) => handleFieldChange('phone', e.target.value)}
+                className="input-neon w-full !pl-10"
+                placeholder="+1 (555) 000-0000"
+              />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Location</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="text" defaultValue="Bangalore, India" className="input-neon w-full !pl-10" />
+              <input
+                type="text"
+                value={profile.profile?.location || ''}
+                onChange={(e) => handleFieldChange('location', e.target.value)}
+                className="input-neon w-full !pl-10"
+                placeholder="City, Country"
+              />
             </div>
           </div>
         </div>
         <div className="mt-5">
           <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Bio</label>
-          <textarea rows={3} defaultValue="Full-stack developer passionate about building scalable applications." className="input-neon w-full resize-none" />
+          <textarea
+            rows={3}
+            value={profile.profile?.bio || ''}
+            onChange={(e) => handleFieldChange('bio', e.target.value)}
+            className="input-neon w-full resize-none"
+            placeholder="Tell us about yourself..."
+          />
         </div>
       </motion.div>
 
-      {/* Skills */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Skills</h3>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {skills.map((skill) => (
-            <span key={skill} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-sm text-[#8b949e]">
-              {skill}
-              <button onClick={() => setSkills(skills.filter((s) => s !== skill))} className="text-[#484f58] hover:text-[#ef4444] transition-colors">
-                <X className="w-3 h-3" />
+      {/* Candidate-specific fields */}
+      {profile.role === 'CANDIDATE' && profile.candidateProfile && (
+        <>
+          {/* Education & Career */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-5">Education & Career</h3>
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">University / College</label>
+                <div className="relative">
+                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input
+                    type="text"
+                    value={profile.candidateProfile.university || ''}
+                    onChange={(e) => handleFieldChange('university', e.target.value)}
+                    className="input-neon w-full !pl-10"
+                    placeholder="MIT"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Graduation Year</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2035"
+                    value={profile.candidateProfile.graduationYear || ''}
+                    onChange={(e) => handleFieldChange('graduationYear', parseInt(e.target.value) || null)}
+                    className="input-neon w-full !pl-10"
+                    placeholder="2025"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Skills */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Skills</h3>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {profile.candidateProfile.skills.map((skill) => (
+                <span key={skill} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-sm text-[#8b949e] hover:border-[#00d4ff]/30 transition-colors">
+                  {skill}
+                  <button
+                    onClick={() => removeSkill(skill)}
+                    className="text-[#484f58] hover:text-[#ef4444] transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {profile.candidateProfile.skills.length === 0 && (
+                <p className="text-sm text-[#484f58]">No skills added yet</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newSkill}
+                onChange={(e) => setNewSkill(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addSkill()}
+                placeholder="Add a skill..."
+                className="input-neon flex-1"
+              />
+              <button onClick={addSkill} className="btn-neon btn-neon-secondary !py-2 !px-4 flex items-center gap-1 text-sm">
+                <Plus className="w-4 h-4" /> Add
               </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input type="text" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkill()} placeholder="Add a skill..." className="input-neon flex-1" />
-          <button onClick={addSkill} className="btn-neon btn-neon-secondary !py-2 !px-4 flex items-center gap-1 text-sm">
-            <Plus className="w-4 h-4" /> Add
-          </button>
+            </div>
+          </motion.div>
+
+          {/* Social Links */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-5">Social Links</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">GitHub</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input
+                    type="url"
+                    value={profile.candidateProfile.githubUrl || ''}
+                    onChange={(e) => handleFieldChange('githubUrl', e.target.value)}
+                    className="input-neon w-full !pl-10"
+                    placeholder="https://github.com/username"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">LinkedIn</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input
+                    type="url"
+                    value={profile.candidateProfile.linkedinUrl || ''}
+                    onChange={(e) => handleFieldChange('linkedinUrl', e.target.value)}
+                    className="input-neon w-full !pl-10"
+                    placeholder="https://linkedin.com/in/username"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Portfolio</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
+                  <input
+                    type="url"
+                    value={profile.candidateProfile.portfolioUrl || ''}
+                    onChange={(e) => handleFieldChange('portfolioUrl', e.target.value)}
+                    className="input-neon w-full !pl-10"
+                    placeholder="https://yourportfolio.com"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Resume */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass-card rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Resume</h3>
+            
+            {profile.candidateProfile.resumeUrl ? (
+              <div className="border border-[#21262d] rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#00d4ff]/10 border border-[#00d4ff]/20 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-[#00d4ff]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">Resume uploaded</p>
+                      <p className="text-xs text-[#8b949e]">Click to view or replace</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={profile.candidateProfile.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-xs text-[#8b949e] hover:text-white hover:border-[#00d4ff]/30 transition-all"
+                    >
+                      View
+                    </a>
+                    <button
+                      onClick={() => resumeInputRef.current?.click()}
+                      disabled={uploadingResume}
+                      className="px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-xs text-[#8b949e] hover:text-white hover:border-[#00d4ff]/30 transition-all disabled:opacity-50"
+                    >
+                      {uploadingResume ? 'Uploading...' : 'Replace'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => resumeInputRef.current?.click()}
+                className="border-2 border-dashed border-[#21262d] rounded-xl p-8 text-center hover:border-[#00d4ff]/30 transition-colors cursor-pointer"
+              >
+                {uploadingResume ? (
+                  <>
+                    <Loader2 className="w-8 h-8 text-[#00d4ff] mx-auto mb-3 animate-spin" />
+                    <p className="text-sm text-[#8b949e]">Uploading resume...</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-[#484f58] mx-auto mb-3" />
+                    <p className="text-sm text-[#8b949e]">
+                      Drag & drop your resume or <span className="text-[#00d4ff]">browse files</span>
+                    </p>
+                    <p className="text-xs text-[#484f58] mt-1">PDF, DOC, DOCX up to 5MB</p>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <input
+              ref={resumeInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleResumeUpload}
+              className="hidden"
+            />
+          </motion.div>
+        </>
+      )}
+
+      {/* Info Banner */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card rounded-xl p-4 border-l-4 border-[#00d4ff]">
+        <div className="flex items-start gap-3">
+          <Clock className="w-5 h-5 text-[#00d4ff] mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="text-sm font-semibold text-white mb-1">Auto-save enabled</h4>
+            <p className="text-xs text-[#8b949e]">
+              Your changes are automatically saved as you type. No need to click a save button!
+            </p>
+          </div>
         </div>
       </motion.div>
-
-      {/* Resume */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Resume</h3>
-        <div className="border-2 border-dashed border-[#21262d] rounded-xl p-8 text-center hover:border-[#00d4ff]/30 transition-colors cursor-pointer">
-          <Upload className="w-8 h-8 text-[#484f58] mx-auto mb-3" />
-          <p className="text-sm text-[#8b949e]">Drag & drop your resume or <span className="text-[#00d4ff]">browse files</span></p>
-          <p className="text-xs text-[#484f58] mt-1">PDF, DOC up to 5MB</p>
-        </div>
-      </motion.div>
-
-      <button className="btn-neon btn-neon-primary flex items-center gap-2">
-        <Save className="w-4 h-4" /> Save Changes
-      </button>
     </div>
   );
 }

@@ -33,9 +33,9 @@ async function main() {
   const defaultTestCases = [
     {
       input: '[]',
-      expectedOutput: '[]',
+      output: '[]',
       isHidden: false,
-      explanation: 'Sample test case',
+      isSample: true,
     },
   ];
 
@@ -60,13 +60,15 @@ async function main() {
           timeLimit: questionData.timeLimit,
           memoryLimit: questionData.memoryLimit,
           isActive: true,
+          isPublic: true,
+          type: 'CODING',
+          supportedLangs: ['PYTHON', 'JAVASCRIPT', 'JAVA', 'CPP'],
           testCases: {
-            create: defaultTestCases.map((tc, idx) => ({
+            create: defaultTestCases.map((tc) => ({
               input: tc.input,
-              expectedOutput: tc.expectedOutput,
+              output: tc.output,
               isHidden: tc.isHidden,
-              explanation: tc.explanation,
-              orderIndex: idx,
+              isSample: tc.isSample,
             })),
           },
         },

@@ -1,5 +1,6 @@
 import { Prisma, Question, Difficulty } from '@prisma/client';
 import { BaseRepository } from './base.repository';
+import prisma from '@/lib/prisma/client';
 
 export interface QuestionFilters {
   difficulty?: Difficulty;
@@ -19,7 +20,7 @@ export interface QuestionWithTestCases extends Question {
   }>;
 }
 
-export class QuestionRepository extends BaseRepository<Question> {
+export class QuestionRepository extends BaseRepository<Question, Prisma.QuestionCreateInput, Prisma.QuestionUpdateInput> {
   constructor() {
     super('question');
   }
@@ -57,13 +58,13 @@ export class QuestionRepository extends BaseRepository<Question> {
     }
 
     const [questions, total] = await Promise.all([
-      this.prisma.question.findMany({
+      prisma.question.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.question.count({ where }),
+      prisma.question.count({ where }),
     ]);
 
     return {
@@ -80,7 +81,7 @@ export class QuestionRepository extends BaseRepository<Question> {
     slug: string,
     includeHidden: boolean = false
   ): Promise<QuestionWithTestCases | null> {
-    const question = await this.prisma.question.findUnique({
+    const question = await prisma.question.findUnique({
       where: { slug },
       include: {
         testCases: {
@@ -100,7 +101,7 @@ export class QuestionRepository extends BaseRepository<Question> {
     id: string,
     includeHidden: boolean = false
   ): Promise<QuestionWithTestCases | null> {
-    const question = await this.prisma.question.findUnique({
+    const question = await prisma.question.findUnique({
       where: { id },
       include: {
         testCases: {
@@ -125,7 +126,7 @@ export class QuestionRepository extends BaseRepository<Question> {
       where.difficulty = difficulty;
     }
 
-    const count = await this.prisma.question.count({ where });
+    const count = await prisma.question.count({ where });
 
     if (count === 0) {
       return null;
@@ -133,7 +134,7 @@ export class QuestionRepository extends BaseRepository<Question> {
 
     const skip = Math.floor(Math.random() * count);
 
-    const question = await this.prisma.question.findFirst({
+    const question = await prisma.question.findFirst({
       where,
       skip,
     });
@@ -145,7 +146,7 @@ export class QuestionRepository extends BaseRepository<Question> {
    * Get questions by tags
    */
   async findByTags(tags: string[], limit: number = 10): Promise<Question[]> {
-    return this.prisma.question.findMany({
+    return prisma.question.findMany({
       where: {
         isActive: true,
         tags: {
@@ -163,7 +164,7 @@ export class QuestionRepository extends BaseRepository<Question> {
   async getDifficultyStats(): Promise<
     Array<{ difficulty: Difficulty; count: number }>
   > {
-    const stats = await this.prisma.question.groupBy({
+    const stats = await prisma.question.groupBy({
       by: ['difficulty'],
       where: { isActive: true },
       _count: true,
@@ -179,7 +180,7 @@ export class QuestionRepository extends BaseRepository<Question> {
    * Get all unique tags
    */
   async getAllTags(): Promise<string[]> {
-    const questions = await this.prisma.question.findMany({
+    const questions = await prisma.question.findMany({
       where: { isActive: true },
       select: { tags: true },
     });
@@ -196,7 +197,7 @@ export class QuestionRepository extends BaseRepository<Question> {
    * Get popular questions (most submissions)
    */
   async getPopularQuestions(limit: number = 10): Promise<Question[]> {
-    const questions = await this.prisma.question.findMany({
+    const questions = await prisma.question.findMany({
       where: { isActive: true },
       include: {
         _count: {
@@ -227,7 +228,7 @@ export class QuestionRepository extends BaseRepository<Question> {
   async bulkCreate(
     questions: Prisma.QuestionCreateInput[]
   ): Promise<Prisma.BatchPayload> {
-    return this.prisma.question.createMany({
+    return prisma.question.createMany({
       data: questions as any,
       skipDuplicates: true,
     });

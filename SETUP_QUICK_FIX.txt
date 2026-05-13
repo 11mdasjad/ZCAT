@@ -1,0 +1,125 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   ⚠️  QUICK FIX - Database Setup Error                                      ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+ERROR YOU'RE SEEING:
+"relation 'public.users' does not exist"
+
+CAUSE:
+Database tables haven't been created yet because DATABASE_URL is incorrect.
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🔧 FIX IN 3 STEPS (10 MINUTES)                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+STEP 1: Fix DATABASE_URL (5 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+1. Go to: https://supabase.com/dashboard
+2. Select your project: clzkcwjhyjddknyzphgf
+3. Click: Project Settings (gear icon) → Database
+4. Find: Connection String section
+5. Select: Transaction Pooler (NOT Session Pooler)
+6. Copy the connection string
+
+7. Open your .env file and replace DATABASE_URL:
+
+   DATABASE_URL="postgresql://postgres.clzkcwjhyjddknyzphgf:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+   DIRECT_URL="postgresql://postgres.clzkcwjhyjddknyzphgf:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+
+   Replace [PASSWORD] with your actual password.
+
+   If password has special characters, URL-encode them:
+   @ → %40
+   # → %23
+   $ → %24
+
+8. Test connection:
+   npx prisma db pull
+
+   Should succeed without errors.
+
+
+STEP 2: Create Database Tables (2 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+Run these commands:
+
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+
+This creates all 30+ tables and loads 203 LeetCode questions.
+
+Verify:
+npx prisma studio
+
+Should show all tables in GUI.
+
+
+STEP 3: Setup Supabase (3 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+A. User Sync Trigger:
+   1. Go to Supabase Dashboard → SQL Editor
+   2. Copy contents of: supabase/user-sync-trigger.sql
+   3. Paste and click Run
+   4. Verify success
+
+B. Storage Buckets:
+   1. Go to Supabase Dashboard → SQL Editor
+   2. Copy contents of: supabase/storage-buckets-setup.sql
+   3. Paste and click Run
+   4. Verify success
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ✅ VERIFICATION                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Test Registration:
+1. npm run dev
+2. Open: http://localhost:3001/register
+3. Register a test user
+4. Check Supabase Auth dashboard - user should appear
+5. Check Prisma Studio - user should appear in users table
+
+Test Profile:
+1. Login with test user
+2. Open: http://localhost:3001/candidate/profile
+3. Profile should load
+4. Try uploading avatar
+5. Try editing fields - should auto-save
+
+Test Admin Dashboard:
+1. Make user admin:
+   UPDATE users SET role = 'ADMIN' WHERE email = 'your-email@example.com';
+2. Open: http://localhost:3001/admin
+3. Dashboard should show real data
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📚 DETAILED GUIDES                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+• SETUP_ORDER.md - Complete step-by-step guide
+• DATABASE_SETUP_GUIDE.md - Database troubleshooting
+• NEXT_STEPS.md - Admin dashboard testing
+• PROFILE_QUICK_START.md - Profile features testing
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🐛 STILL HAVING ISSUES?                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+1. Check Supabase project is not paused
+2. Verify DATABASE_URL is exactly as shown in Supabase
+3. Make sure password is URL-encoded
+4. Check you're using Transaction Pooler (port 6543)
+5. Read DATABASE_SETUP_GUIDE.md for detailed troubleshooting
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   TL;DR: Fix DATABASE_URL → Run Prisma commands → Run SQL scripts           ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
