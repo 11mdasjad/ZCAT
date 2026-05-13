@@ -1,0 +1,758 @@
+// ZCAT Platform - Enterprise Database Schema
+// Optimized for scalability, performance, and maintainability
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum AssessmentType {
+  CODING
+  APTITUDE
+  INTERVIEW
+  MIXED
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionType {
+  CODING
+  MCQ
+  DESCRIPTIVE
+}
+
+enum ProgrammingLanguage {
+  PYTHON
+  JAVASCRIPT
+  JAVA
+  CPP
+  C
+  GO
+  RUST
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILATION_ERROR
+  INTERNAL_ERROR
+}
+
+enum ViolationType {
+  TAB_SWITCH
+  MULTIPLE_FACES
+  NO_FACE
+  AUDIO_ANOMALY
+  COPY_PASTE
+  SUSPICIOUS_ACTIVITY
+  UNAUTHORIZED_DEVICE
+}
+
+enum ViolationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  TERMINATED
+}
+
+enum NotificationType {
+  ASSESSMENT_INVITE
+  ASSESSMENT_REMINDER
+  SUBMISSION_RESULT
+  VIOLATION_ALERT
+  CERTIFICATE_ISSUED
+  SYSTEM_ALERT
+}
+
+enum CertificateStatus {
+  PENDING
+  ISSUED
+  REVOKED
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  role          UserRole  @default(CANDIDATE)
+  avatarUrl     String?   @map("avatar_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  profile              Profile?
+  candidateProfile     CandidateProfile?
+  recruiterProfile     RecruiterProfile?
+  createdAssessments   Assessment[]           @relation("CreatedAssessments")
+  submissions          Submission[]
+  sessions             ExamSession[]
+  violations           Violation[]
+  certificates         Certificate[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  refreshTokens        RefreshToken[]
+  deviceSessions       DeviceSession[]
+  interviewSessions    InterviewSession[]
+  leaderboardEntries   LeaderboardEntry[]
+  performanceSnapshots PerformanceSnapshot[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  bio       String?
+  phone     String?
+  location  String?
+  timezone  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model CandidateProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  university     String?
+  graduationYear Int?     @map("graduation_year")
+  resumeUrl      String?  @map("resume_url")
+  skills         String[] @default([])
+  githubUrl      String?  @map("github_url")
+  linkedinUrl    String?  @map("linkedin_url")
+  portfolioUrl   String?  @map("portfolio_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([university])
+  @@index([graduationYear])
+  @@map("candidate_profiles")
+}
+
+model RecruiterProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  companyName  String   @map("company_name")
+  jobTitle     String   @map("job_title")
+  companySize  String?  @map("company_size")
+  industry     String?
+  website      String?
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyName])
+  @@index([verified])
+  @@map("recruiter_profiles")
+}
+
+// ============================================
+// AUTHENTICATION & SESSIONS
+// ============================================
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model DeviceSession {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  deviceId     String    @map("device_id")
+  deviceName   String?   @map("device_name")
+  ipAddress    String    @map("ip_address")
+  userAgent    String    @map("user_agent")
+  lastActiveAt DateTime  @default(now()) @map("last_active_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  revokedAt    DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([lastActiveAt])
+  @@map("device_sessions")
+}
+
+// ============================================
+// ASSESSMENTS
+// ============================================
+
+model Assessment {
+  id               String           @id @default(uuid())
+  title            String
+  description      String
+  type             AssessmentType
+  status           AssessmentStatus @default(DRAFT)
+  difficulty       Difficulty?
+  duration         Int              // in minutes
+  totalMarks       Int              @map("total_marks")
+  passingMarks     Int              @map("passing_marks")
+  startTime        DateTime?        @map("start_time")
+  endTime          DateTime?        @map("end_time")
+  instructions     String?
+  tags             String[]         @default([])
+  isPublic         Boolean          @default(false) @map("is_public")
+  allowedLanguages String[]         @default([]) @map("allowed_languages")
+  createdById      String           @map("created_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
+
+  // Relations
+  createdBy        User                      @relation("CreatedAssessments", fields: [createdById], references: [id])
+  questions        AssessmentQuestion[]
+  sessions         ExamSession[]
+  submissions      Submission[]
+  invitations      AssessmentInvitation[]
+  analytics        AssessmentAnalytics?
+  leaderboard      Leaderboard?
+
+  @@index([createdById])
+  @@index([status])
+  @@index([type])
+  @@index([startTime])
+  @@index([createdAt])
+  @@index([title])
+  @@index([description])
+  @@map("assessments")
+}
+
+model Question {
+  id               String             @id @default(uuid())
+  title            String
+  slug             String             @unique
+  description      String
+  type             QuestionType       @default(CODING)
+  difficulty       Difficulty
+  tags             String[]           @default([])
+  timeLimit        Int?               @map("time_limit") // in milliseconds
+  memoryLimit      Int?               @map("memory_limit") // in MB
+  supportedLangs   String[]           @default([]) @map("supported_languages")
+  constraints      String[]           @default([])
+  examples         String[]           @default([])
+  hints            String[]           @default([])
+  solution         String?
+  successRate      Float?             @default(0) @map("success_rate")
+  totalAttempts    Int                @default(0) @map("total_attempts")
+  isPublic         Boolean            @default(false) @map("is_public")
+  isActive         Boolean            @default(true) @map("is_active")
+  version          Int                @default(1)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  deletedAt        DateTime?          @map("deleted_at")
+
+  // Relations
+  assessments      AssessmentQuestion[]
+  testCases        TestCase[]
+  submissions      Submission[]
+  versions         QuestionVersion[]
+
+  @@index([slug])
+  @@index([type])
+  @@index([difficulty])
+  @@index([isPublic])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([title])
+  @@map("questions")
+}
+
+model AssessmentQuestion {
+  id           String   @id @default(uuid())
+  assessmentId String   @map("assessment_id")
+  questionId   String   @map("question_id")
+  order        Int
+  marks        Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionId])
+  @@index([assessmentId])
+  @@index([questionId])
+  @@map("assessment_questions")
+}
+
+model QuestionVersion {
+  id          String   @id @default(uuid())
+  questionId  String   @map("question_id")
+  version     Int
+  title       String
+  description String
+  changes     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, version])
+  @@index([questionId])
+  @@map("question_versions")
+}
+
+model TestCase {
+  id         String   @id @default(uuid())
+  questionId String   @map("question_id")
+  input      String
+  output     String
+  isHidden   Boolean  @default(false) @map("is_hidden")
+  isSample   Boolean  @default(false) @map("is_sample")
+  weight     Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([isHidden])
+  @@map("test_cases")
+}
+
+// ============================================
+// SUBMISSIONS & EXECUTIONS
+// ============================================
+
+model Submission {
+  id           String           @id @default(uuid())
+  assessmentId String           @map("assessment_id")
+  questionId   String           @map("question_id")
+  userId       String           @map("user_id")
+  sessionId    String           @map("session_id")
+  code         String
+  language     ProgrammingLanguage
+  status       SubmissionStatus @default(PENDING)
+  score        Int?
+  totalTests   Int              @default(0) @map("total_tests")
+  passedTests  Int              @default(0) @map("passed_tests")
+  executionTime Float?          @map("execution_time") // in ms
+  memoryUsed   Float?           @map("memory_used") // in MB
+  submittedAt  DateTime         @default(now()) @map("submitted_at")
+  evaluatedAt  DateTime?        @map("evaluated_at")
+
+  // Relations
+  assessment Assessment        @relation(fields: [assessmentId], references: [id])
+  question   Question          @relation(fields: [questionId], references: [id])
+  user       User              @relation(fields: [userId], references: [id])
+  session    ExamSession       @relation(fields: [sessionId], references: [id])
+  executions CodeExecution[]
+  testResults TestCaseResult[]
+
+  @@index([userId])
+  @@index([assessmentId])
+  @@index([questionId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([submittedAt])
+  @@map("submissions")
+}
+
+model CodeExecution {
+  id            String           @id @default(uuid())
+  submissionId  String           @map("submission_id")
+  language      ProgrammingLanguage
+  code          String
+  input         String?
+  output        String?
+  error         String?
+  status        SubmissionStatus
+  executionTime Float?           @map("execution_time")
+  memoryUsed    Float?           @map("memory_used")
+  exitCode      Int?             @map("exit_code")
+  queuedAt      DateTime         @default(now()) @map("queued_at")
+  startedAt     DateTime?        @map("started_at")
+  completedAt   DateTime?        @map("completed_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([status])
+  @@index([queuedAt])
+  @@map("code_executions")
+}
+
+model TestCaseResult {
+  id           String   @id @default(uuid())
+  submissionId String   @map("submission_id")
+  testCaseId   String   @map("test_case_id")
+  passed       Boolean
+  input        String
+  expectedOutput String @map("expected_output")
+  actualOutput String   @map("actual_output")
+  executionTime Float?  @map("execution_time")
+  memoryUsed   Float?   @map("memory_used")
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([testCaseId])
+  @@map("test_case_results")
+}
+
+// ============================================
+// EXAM SESSIONS & PROCTORING
+// ============================================
+
+model ExamSession {
+  id             String        @id @default(uuid())
+  assessmentId   String        @map("assessment_id")
+  userId         String        @map("user_id")
+  status         SessionStatus @default(ACTIVE)
+  startedAt      DateTime      @default(now()) @map("started_at")
+  endedAt        DateTime?     @map("ended_at")
+  timeRemaining  Int?          @map("time_remaining") // in seconds
+  integrityScore Int           @default(100) @map("integrity_score")
+  ipAddress      String        @map("ip_address")
+  userAgent      String        @map("user_agent")
+  deviceInfo     Json?         @map("device_info")
+
+  // Relations
+  assessment  Assessment   @relation(fields: [assessmentId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  submissions Submission[]
+  violations  Violation[]
+  snapshots   ProctoringSnapshot[]
+
+  @@unique([assessmentId, userId])
+  @@index([userId])
+  @@index([assessmentId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("exam_sessions")
+}
+
+model Violation {
+  id          String            @id @default(uuid())
+  sessionId   String            @map("session_id")
+  userId      String            @map("user_id")
+  type        ViolationType
+  severity    ViolationSeverity
+  description String
+  metadata    Json?
+  timestamp   DateTime          @default(now())
+
+  session ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([type])
+  @@index([severity])
+  @@index([timestamp])
+  @@map("violations")
+}
+
+model ProctoringSnapshot {
+  id          String   @id @default(uuid())
+  sessionId   String   @map("session_id")
+  imageUrl    String   @map("image_url")
+  faceCount   Int      @map("face_count")
+  confidence  Float
+  metadata    Json?
+  capturedAt  DateTime @default(now()) @map("captured_at")
+
+  session ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([capturedAt])
+  @@map("proctoring_snapshots")
+}
+
+// ============================================
+// ANALYTICS & LEADERBOARD
+// ============================================
+
+model AssessmentAnalytics {
+  id                String   @id @default(uuid())
+  assessmentId      String   @unique @map("assessment_id")
+  totalCandidates   Int      @default(0) @map("total_candidates")
+  completedCount    Int      @default(0) @map("completed_count")
+  averageScore      Float?   @map("average_score")
+  averageTime       Float?   @map("average_time")
+  passRate          Float?   @map("pass_rate")
+  topScore          Int?     @map("top_score")
+  difficultyRating  Float?   @map("difficulty_rating")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_analytics")
+}
+
+model Leaderboard {
+  id           String   @id @default(uuid())
+  assessmentId String   @unique @map("assessment_id")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  assessment Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  entries    LeaderboardEntry[]
+
+  @@map("leaderboards")
+}
+
+model LeaderboardEntry {
+  id            String   @id @default(uuid())
+  leaderboardId String   @map("leaderboard_id")
+  userId        String   @map("user_id")
+  rank          Int
+  score         Int
+  timeTaken     Int      @map("time_taken") // in seconds
+  problemsSolved Int     @map("problems_solved")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  leaderboard Leaderboard @relation(fields: [leaderboardId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([leaderboardId, userId])
+  @@index([leaderboardId, rank])
+  @@index([userId])
+  @@map("leaderboard_entries")
+}
+
+model PerformanceSnapshot {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  totalTests      Int      @default(0) @map("total_tests")
+  averageScore    Float    @default(0) @map("average_score")
+  globalRank      Int?     @map("global_rank")
+  skillRatings    Json     @default("{}") @map("skill_ratings")
+  strengthAreas   String[] @default([]) @map("strength_areas")
+  improvementAreas String[] @default([]) @map("improvement_areas")
+  snapshotDate    DateTime @default(now()) @map("snapshot_date")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([snapshotDate])
+  @@map("performance_snapshots")
+}
+
+// ============================================
+// CERTIFICATES
+// ============================================
+
+model Certificate {
+  id             String            @id @default(uuid())
+  userId         String            @map("user_id")
+  assessmentId   String?           @map("assessment_id")
+  title          String
+  description    String?
+  score          Int?
+  issueDate      DateTime          @default(now()) @map("issue_date")
+  expiryDate     DateTime?         @map("expiry_date")
+  certificateUrl String            @map("certificate_url")
+  verificationCode String          @unique @map("verification_code")
+  status         CertificateStatus @default(PENDING)
+  metadata       Json?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([verificationCode])
+  @@index([issueDate])
+  @@map("certificates")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+  readAt    DateTime?        @map("read_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model AssessmentInvitation {
+  id           String    @id @default(uuid())
+  assessmentId String    @map("assessment_id")
+  email        String
+  invitedAt    DateTime  @default(now()) @map("invited_at")
+  acceptedAt   DateTime? @map("accepted_at")
+  expiresAt    DateTime  @map("expires_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, email])
+  @@index([assessmentId])
+  @@index([email])
+  @@map("assessment_invitations")
+}
+
+// ============================================
+// AI INTERVIEW
+// ============================================
+
+model InterviewSession {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  duration    Int      // in minutes
+  startedAt   DateTime @default(now()) @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  overallScore Float?  @map("overall_score")
+  feedback    String?
+  transcript  String?
+
+  user      User               @relation(fields: [userId], references: [id])
+  questions InterviewQuestion[]
+  responses InterviewResponse[]
+
+  @@index([userId])
+  @@index([startedAt])
+  @@map("interview_sessions")
+}
+
+model InterviewQuestion {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  question  String
+  category  String
+  order     Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session   InterviewSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  responses InterviewResponse[]
+
+  @@index([sessionId])
+  @@map("interview_questions")
+}
+
+model InterviewResponse {
+  id         String   @id @default(uuid())
+  sessionId  String   @map("session_id")
+  questionId String   @map("question_id")
+  response   String
+  audioUrl   String?  @map("audio_url")
+  score      Float?
+  feedback   String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  session  InterviewSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([questionId])
+  @@map("interview_responses")
+}
+
+// ============================================
+// AUDIT & LOGGING
+// ============================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  changes   Json?
+  ipAddress String   @map("ip_address")
+  userAgent String   @map("user_agent")
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ============================================
+// SYSTEM
+// ============================================
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}

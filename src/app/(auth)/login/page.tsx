@@ -51,6 +51,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    if (error) toast.error(error.message);
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Left — Illustration */}
@@ -166,6 +176,22 @@ export default function LoginPage() {
               ) : (
                 <>Sign In <ArrowRight className="w-4 h-4" /></>
               )}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-[#21262d]" />
+              <span className="text-xs text-[#484f58]">or continue with</span>
+              <div className="flex-1 h-px bg-[#21262d]" />
+            </div>
+
+            {/* Google */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#21262d] bg-[#161b22]/50 text-sm font-medium text-[#8b949e] hover:text-white hover:border-[#30363d] transition-all"
+            >
+              <Globe className="w-4 h-4" /> Google
             </button>
           </form>
         </motion.div>

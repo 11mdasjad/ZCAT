@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Briefcase, MapPin, Upload, Save, Plus, X } from 'lucide-react';
 
+import { useAuthStore } from '@/lib/store/auth-store';
+
 export default function ProfilePage() {
+  const { user } = useAuthStore();
   const [skills, setSkills] = useState(['React', 'TypeScript', 'Python', 'Node.js', 'MongoDB']);
   const [newSkill, setNewSkill] = useState('');
 
@@ -26,17 +29,21 @@ export default function ProfilePage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6">
         <div className="flex items-center gap-6">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
-              <User className="w-10 h-10 text-white" />
-            </div>
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
+                <User className="w-10 h-10 text-white" />
+              </div>
+            )}
             <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#161b22] border border-[#21262d] flex items-center justify-center text-[#8b949e] hover:text-white transition-colors">
               <Upload className="w-3.5 h-3.5" />
             </button>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Asjad Ahmed</h3>
-            <p className="text-sm text-[#8b949e]">asjad@zcat.dev</p>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20 mt-1">Candidate</span>
+            <h3 className="text-lg font-semibold text-white">{user?.name || 'User'}</h3>
+            <p className="text-sm text-[#8b949e]">{user?.email || 'email@example.com'}</p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20 mt-1 capitalize">{user?.role || 'Candidate'}</span>
           </div>
         </div>
       </motion.div>
@@ -49,14 +56,14 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Full Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="text" defaultValue="Asjad Ahmed" className="input-neon w-full !pl-10" />
+              <input type="text" defaultValue={user?.name || ''} className="input-neon w-full !pl-10" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
-              <input type="email" defaultValue="asjad@zcat.dev" className="input-neon w-full !pl-10" />
+              <input type="email" defaultValue={user?.email || ''} className="input-neon w-full !pl-10" />
             </div>
           </div>
           <div>

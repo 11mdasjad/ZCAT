@@ -68,6 +68,15 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    if (error) toast.error(error.message);
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen px-4 py-12">
@@ -269,6 +278,18 @@ export default function RegisterPage() {
             </button>
           </div>
 
+          {step === 0 && (
+            <>
+              <div className="flex items-center gap-4 mt-6">
+                <div className="flex-1 h-px bg-[#21262d]" />
+                <span className="text-xs text-[#484f58]">or</span>
+                <div className="flex-1 h-px bg-[#21262d]" />
+              </div>
+              <button type="button" onClick={handleGoogleSignIn} className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#21262d] bg-[#161b22]/50 text-sm font-medium text-[#8b949e] hover:text-white hover:border-[#30363d] transition-all">
+                <Globe className="w-4 h-4" /> Sign up with Google
+              </button>
+            </>
+          )}
         </form>
       </motion.div>
     </div>

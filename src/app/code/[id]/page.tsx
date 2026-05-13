@@ -6,10 +6,10 @@ import dynamic from 'next/dynamic';
 import {
   Play, Send, RotateCcw, Maximize2, Minimize2, ChevronDown,
   Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft,
-  Eye, Copy, Terminal, Zap, FileText
+  Eye, Copy, Terminal, Zap, FileText, Loader2
 } from 'lucide-react';
 import Link from 'next/link';
-import { mockCodingQuestions } from '@/lib/data/mock-exams';
+import { useParams } from 'next/navigation';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -106,8 +106,33 @@ int* twoSum(int* nums, int numsSize, int target, int* returnSize) {
 `,
 };
 
+interface Question {
+  id: string;
+  title: string;
+  slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  description: string;
+  examples: string[];
+  constraints: string[];
+  tags: string[];
+  timeLimit: number;
+  memoryLimit: number;
+  testCases: Array<{
+    id: string;
+    input: string;
+    expectedOutput: string;
+    isHidden: boolean;
+    explanation: string | null;
+  }>;
+}
+
 export default function CodingExamPage() {
-  const question = mockCodingQuestions[0];
+  const params = useParams();
+  const questionId = params.id as string;
+
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState(defaultCode.python);
   const [output, setOutput] = useState('');
@@ -117,6 +142,31 @@ export default function CodingExamPage() {
   const [timeLeft, setTimeLeft] = useState(7200); // 2 hours
   const [activeTab, setActiveTab] = useState<'description' | 'submissions'>('description');
   const [testResults, setTestResults] = useState<{ passed: boolean; input: string; expected: string; got: string }[]>([]);
+
+  // Fetch question data
+  useEffect(() => {
+    async function fetchQuestion() {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/v1/questions/${questionId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch question');
+        }
+
+        const data = await response.json();
+        setQuestion(data.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load question');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (questionId) {
+      fetchQuestion();
+    }
+  }, [questionId]);
 
   // Timer
   useEffect(() => {
@@ -154,6 +204,43 @@ export default function CodingExamPage() {
 
   const timeColor = timeLeft < 300 ? 'text-[#ef4444]' : timeLeft < 600 ? 'text-[#f59e0b]' : 'text-[#10b981]';
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#06080f]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin mx-auto mb-3" />
+          <p className="text-sm text-[#8b949e]">Loading question...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !question) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#06080f]">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-[#ef4444] mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-white mb-2">Failed to Load Question</h2>
+          <p className="text-sm text-[#8b949e] mb-4">{error || 'Question not found'}</p>
+          <Link
+            href="/candidate/challenges"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0066ff] text-white text-sm font-medium hover:bg-[#0052cc] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Challenges
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const difficultyColor = 
+    question.difficulty === 'EASY' ? 'bg-[#10b981]/10 text-[#10b981]' :
+    question.difficulty === 'MEDIUM' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' : 
+    'bg-[#ef4444]/10 text-[#ef4444]';
+
   return (
     <div className="h-screen flex flex-col bg-[#06080f]">
       {/* Top Bar */}
@@ -167,10 +254,9 @@ export default function CodingExamPage() {
             <Zap className="w-4 h-4 text-[#00d4ff]" />
             <span className="text-sm font-semibold text-white">{question.title}</span>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            question.difficulty === 'easy' ? 'bg-[#10b981]/10 text-[#10b981]' :
-            question.difficulty === 'medium' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' : 'bg-[#ef4444]/10 text-[#ef4444]'
-          }`}>{question.difficulty}</span>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColor}`}>
+            {question.difficulty.toLowerCase()}
+          </span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -235,10 +321,8 @@ export default function CodingExamPage() {
                   {question.examples.map((ex, i) => (
                     <div key={i} className="bg-[#161b22] rounded-xl p-4 border border-[#21262d]">
                       <p className="text-xs font-semibold text-white mb-2">Example {i + 1}:</p>
-                      <div className="font-mono text-xs space-y-1">
-                        <p className="text-[#8b949e]"><span className="text-[#484f58]">Input:</span> {ex.input}</p>
-                        <p className="text-[#8b949e]"><span className="text-[#484f58]">Output:</span> {ex.output}</p>
-                        {ex.explanation && <p className="text-[#484f58]"><span>Explanation:</span> {ex.explanation}</p>}
+                      <div className="font-mono text-xs">
+                        <pre className="text-[#8b949e] whitespace-pre-wrap">{ex}</pre>
                       </div>
                     </div>
                   ))}
@@ -258,9 +342,9 @@ export default function CodingExamPage() {
 
                 {/* Meta */}
                 <div className="flex gap-3 text-xs text-[#484f58]">
-                  <span>Time: {question.timeLimit}s</span>
+                  <span>Time: {question.timeLimit}ms</span>
                   <span>Memory: {question.memoryLimit}MB</span>
-                  <span>Hidden: {question.hiddenTestCases} cases</span>
+                  <span>Test Cases: {question.testCases.length}</span>
                 </div>
               </div>
             ) : (
