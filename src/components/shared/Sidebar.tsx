@@ -33,6 +33,7 @@ const adminLinks = [
   { href: '/admin/monitoring', icon: Eye, label: 'Live Monitoring' },
   { href: '/admin/analytics', icon: LineChart, label: 'Analytics' },
   { href: '/admin/reports', icon: FileDown, label: 'Reports' },
+  { href: '/admin/profile', icon: User, label: 'Profile' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 

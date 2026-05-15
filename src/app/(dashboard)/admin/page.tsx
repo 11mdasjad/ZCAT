@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, AlertTriangle, Trophy, TrendingUp, Activity, ArrowRight, Eye, Loader2 } from 'lucide-react';
+import { Users, FileText, AlertTriangle, Trophy, TrendingUp, ArrowRight, Eye, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -39,11 +39,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/v1/admin/stats');
@@ -61,7 +57,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
 
   if (loading) {
     return (
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   ];
 
   // Transform assessment activity data for chart
-  const assessmentData = stats.assessmentActivity.map((item: any) => ({
+  const assessmentData = stats.assessmentActivity.map((item) => ({
     date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
     candidates: item.count,
     completed: Math.floor(item.count * 0.85), // Estimate completed
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
         </div>
         <div className="space-y-3">
           {stats.recentAssessments.length > 0 ? (
-            stats.recentAssessments.map((exam, i) => (
+            stats.recentAssessments.map((exam) => (
               <div key={exam.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[#161b22]/30 border border-[#21262d]/50">
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium text-white truncate">{exam.name}</h4>

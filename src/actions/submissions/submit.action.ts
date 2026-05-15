@@ -16,7 +16,7 @@ import { z } from 'zod';
 export async function submitCodeAction(formData: FormData) {
   try {
     // Get current user
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -66,13 +66,38 @@ export async function submitCodeAction(formData: FormData) {
       throw new ValidationError('Assessment has ended');
     }
 
+    if (session.assessmentId !== validatedData.assessmentId) {
+      throw new ValidationError('Submission does not match the active session assessment');
+    }
+
+    const assessmentQuestion = await prisma.assessmentQuestion.findUnique({
+      where: {
+        assessmentId_questionId: {
+          assessmentId: validatedData.assessmentId,
+          questionId: validatedData.questionId,
+        },
+      },
+      include: {
+        question: {
+          select: {
+            timeLimit: true,
+            memoryLimit: true,
+          },
+        },
+      },
+    });
+
+    if (!assessmentQuestion) {
+      throw new UnauthorizedError('Question is not part of this assessment');
+    }
+
     // Get test cases
     const testCases = await prisma.testCase.findMany({
       where: { questionId: validatedData.questionId },
       select: {
         id: true,
         input: true,
-        output: true,
+        expectedOutput: true,
         isHidden: true,
       },
     });
@@ -96,18 +121,26 @@ export async function submitCodeAction(formData: FormData) {
     });
 
     // Queue execution job
-    await addExecutionJob({
+    const queued = await addExecutionJob({
       submissionId: submission.id,
       code: validatedData.code,
       language: validatedData.language,
       testCases: testCases.map((tc) => ({
         id: tc.id,
         input: tc.input,
-        expectedOutput: tc.output,
+        expectedOutput: tc.expectedOutput,
       })),
-      timeLimit: 10, // 10 seconds default
-      memoryLimit: 512, // 512 MB default
+      timeLimit: Math.ceil((assessmentQuestion.question.timeLimit ?? 10000) / 1000),
+      memoryLimit: assessmentQuestion.question.memoryLimit ?? 512,
     });
+
+    if (!queued) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: 'INTERNAL_ERROR' },
+      });
+      throw new ValidationError('Submission could not be queued for execution');
+    }
 
     // Revalidate paths
     revalidatePath(`/code/${validatedData.questionId}`);
@@ -157,7 +190,7 @@ export async function submitCodeAction(formData: FormData) {
  */
 export async function getSubmissionStatusAction(submissionId: string) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

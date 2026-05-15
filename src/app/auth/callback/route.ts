@@ -37,9 +37,9 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Fetch role to redirect
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (profile?.role === 'admin' || profile?.role === 'recruiter') {
+        // Fetch role to redirect - query users table not profiles
+        const { data: userRecord } = await supabase.from('users').select('role').eq('id', user.id).single();
+        if (userRecord?.role === 'ADMIN' || userRecord?.role === 'RECRUITER' || userRecord?.role === 'SUPER_ADMIN') {
           return NextResponse.redirect(`${origin}/admin`);
         }
       }

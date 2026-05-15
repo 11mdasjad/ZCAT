@@ -22,6 +22,63 @@ function normalizeRole(role: string | undefined | null): 'CANDIDATE' | 'ADMIN' |
   return 'CANDIDATE';
 }
 
+function buildFallbackProfile(authUser: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, any>;
+}) {
+  const meta = authUser.user_metadata || {};
+  const role = normalizeRole(meta.role);
+  const name = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+
+  return {
+    id: authUser.id,
+    email: authUser.email || '',
+    name,
+    role,
+    avatarUrl: meta.avatar_url || null,
+    isActive: true,
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    profile: {
+      bio: meta.bio || null,
+      phone: meta.phone || null,
+      location: meta.location || null,
+      timezone: meta.timezone || null,
+    },
+    candidateProfile: role === 'CANDIDATE'
+      ? {
+          university: meta.university || null,
+          graduationYear: meta.graduation_year ? parseInt(meta.graduation_year) : null,
+          resumeUrl: meta.resume_url || null,
+          skills: Array.isArray(meta.skills) ? meta.skills : [],
+          githubUrl: meta.github_url || null,
+          linkedinUrl: meta.linkedin_url || null,
+          portfolioUrl: meta.portfolio_url || null,
+        }
+      : null,
+    recruiterProfile: role === 'RECRUITER'
+      ? {
+          companyName: meta.company_name || 'Unknown Company',
+          jobTitle: meta.job_title || 'Recruiter',
+          companySize: meta.company_size || null,
+          industry: meta.industry || null,
+          website: meta.website || null,
+          verified: false,
+        }
+      : null,
+  };
+}
+
+function isPrismaConnectionError(error: unknown) {
+  return error instanceof Error && (
+    error.name === 'PrismaClientInitializationError' ||
+    error.message.includes("Can't reach database server") ||
+    error.message.includes('Tenant or user not found')
+  );
+}
+
 /**
  * Ensure the authenticated Supabase user has a corresponding record in the
  * Prisma `users` table (and associated profile / candidate_profile).
@@ -151,6 +208,15 @@ export async function GET(req: NextRequest) {
     return successResponse(user);
   } catch (error) {
     logger.error('Error fetching profile:', error);
+    if (isPrismaConnectionError(error)) {
+      const supabase = await createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser) {
+        return successResponse(buildFallbackProfile(authUser));
+      }
+    }
+
     return errorResponse(error as Error);
   }
 }

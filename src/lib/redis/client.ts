@@ -194,7 +194,8 @@ export class CacheService {
    */
   static async zadd(key: string, score: number, member: string): Promise<number> {
     try {
-      return await redis.zadd(key, { score, member });
+      const result = await redis.zadd(key, { score, member });
+      return result ?? 0;
     } catch (error) {
       logger.error(`Redis ZADD error for key ${key}:`, error);
       return 0;

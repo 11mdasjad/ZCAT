@@ -364,13 +364,15 @@ model QuestionVersion {
 model TestCase {
   id         String   @id @default(uuid())
   questionId String   @map("question_id")
-  input      String
-  output     String
-  isHidden   Boolean  @default(false) @map("is_hidden")
-  isSample   Boolean  @default(false) @map("is_sample")
-  weight     Int      @default(1)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  input          String
+  expectedOutput String   @map("expected_output")
+  isHidden    Boolean  @default(false) @map("is_hidden")
+  isSample    Boolean  @default(false) @map("is_sample")
+  weight      Int      @default(1)
+  explanation String?
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 

@@ -36,14 +36,14 @@ export default function LoginPage() {
     } else if (data.user) {
       toast.success('Logged in successfully!');
       
-      // Fetch role to route properly
-      const { data: profile } = await supabase
-        .from('profiles')
+      // Fetch role to route properly - query users table not profiles
+      const { data: user } = await supabase
+        .from('users')
         .select('role')
         .eq('id', data.user.id)
         .single();
         
-      if (profile?.role === 'admin' || profile?.role === 'recruiter') {
+      if (user?.role === 'ADMIN' || user?.role === 'RECRUITER' || user?.role === 'SUPER_ADMIN') {
         window.location.href = '/admin';
       } else {
         window.location.href = '/candidate';
@@ -66,11 +66,24 @@ export default function LoginPage() {
       {/* Left — Illustration */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0066ff]/10 via-[#7c3aed]/5 to-transparent" />
+        
+        {/* Animated Background Orbs */}
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#0066ff]/20 rounded-full blur-[100px]"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#7c3aed]/20 rounded-full blur-[100px]"
+        />
+
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8 }}
-          className="relative text-center px-12"
+          className="relative text-center px-12 z-10"
         >
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center mx-auto mb-8 shadow-[0_0_60px_rgba(0,102,255,0.3)]">
             <Zap className="w-10 h-10 text-white" />

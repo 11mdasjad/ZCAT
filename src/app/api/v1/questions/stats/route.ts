@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
   try {
     const stats = await questionService.getDifficultyStats();
 
-    return successResponse({ stats }, 'Statistics fetched successfully');
+    return successResponse({ stats });
   } catch (error) {
     if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode);
+      return errorResponse(error, error.statusCode);
     }
 
     logger.error('GET /api/v1/questions/stats error', { error });
-    return errorResponse('Failed to fetch statistics', 500);
+    return errorResponse(new Error('Failed to fetch statistics'), 500);
   }
 }

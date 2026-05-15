@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
@@ -9,7 +9,9 @@ import {
   Eye, Copy, Terminal, Zap, FileText, Loader2
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { submitCodeAction } from '@/actions/submissions/submit.action';
+import toast from 'react-hot-toast';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -128,7 +130,10 @@ interface Question {
 
 export default function CodingExamPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const questionId = params.id as string;
+  const assessmentId = searchParams.get('assessmentId');
+  const sessionId = searchParams.get('sessionId');
 
   const [question, setQuestion] = useState<Question | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,6 +142,7 @@ export default function CodingExamPage() {
   const [code, setCode] = useState(defaultCode.python);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState(7200); // 2 hours
@@ -200,6 +206,35 @@ export default function CodingExamPage() {
       ]);
       setOutput(`$ Executing ${language}...\n\nCompilation: Success (0.08s)\nRuntime: 42ms | Memory: 14.2MB\n\n✓ Test Case 1: Passed\n✓ Test Case 2: Passed\n\n═══════════════════════════════\n  Result: 2/2 test cases passed\n═══════════════════════════════`);
     }, 1500);
+  };
+
+  const handleSubmit = async () => {
+    if (!assessmentId || !sessionId) {
+      toast.error('Missing assessment session context');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.set('assessmentId', assessmentId);
+      formData.set('questionId', questionId);
+      formData.set('sessionId', sessionId);
+      formData.set('code', code);
+      formData.set('language', language.toUpperCase());
+
+      const result = await submitCodeAction(formData);
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to submit code');
+      }
+
+      toast.success('Solution submitted');
+      setShowSubmitModal(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit code');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const timeColor = timeLeft < 300 ? 'text-[#ef4444]' : timeLeft < 600 ? 'text-[#f59e0b]' : 'text-[#10b981]';
@@ -480,9 +515,14 @@ export default function CodingExamPage() {
                 <button onClick={() => setShowSubmitModal(false)} className="flex-1 py-2.5 rounded-xl border border-[#21262d] text-sm text-[#8b949e] hover:text-white transition-colors">
                   Cancel
                 </button>
-                <Link href="/candidate" className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#7c3aed] text-white text-sm font-medium text-center hover:shadow-[0_0_20px_rgba(0,102,255,0.3)] transition-all">
-                  Submit
-                </Link>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#7c3aed] text-white text-sm font-medium text-center hover:shadow-[0_0_20px_rgba(0,102,255,0.3)] transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
               </div>
             </motion.div>
           </motion.div>

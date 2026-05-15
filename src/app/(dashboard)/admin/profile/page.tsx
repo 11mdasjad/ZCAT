@@ -1,5 +1,5 @@
 import ProfileView from '@/components/profile/ProfileView';
 
-export default function CandidateProfilePage() {
+export default function AdminProfilePage() {
   return <ProfileView />;
 }

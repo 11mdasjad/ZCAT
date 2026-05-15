@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
 
     const question = await questionService.getRandomQuestion(difficulty);
 
-    return successResponse(question, 'Random question fetched successfully');
+    return successResponse(question);
   } catch (error) {
     if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode);
+      return errorResponse(error, error.statusCode);
     }
 
     logger.error('GET /api/v1/questions/random error', { error });
-    return errorResponse('Failed to fetch random question', 500);
+    return errorResponse(new Error('Failed to fetch random question'), 500);
   }
 }

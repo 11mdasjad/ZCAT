@@ -21,9 +21,8 @@ export interface QuestionWithTestCases extends Question {
 }
 
 export class QuestionRepository extends BaseRepository<Question, Prisma.QuestionCreateInput, Prisma.QuestionUpdateInput> {
-  constructor() {
-    super('question');
-  }
+  protected modelName = Prisma.ModelName.Question;
+
 
   /**
    * Find all questions with optional filters and pagination

@@ -44,12 +44,11 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthRoute && user) {
     // If we have a user and they try to hit login/register, redirect to their dashboard
-    // We ideally need their role to redirect properly, but a generic /candidate fallback is okay
-    // They will be routed properly by the frontend logic or we can fetch their profile
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    // We fetch role from users table not profiles
+    const { data: userRecord } = await supabase.from('users').select('role').eq('id', user.id).single();
     const url = request.nextUrl.clone();
     
-    if (profile?.role === 'admin') {
+    if (userRecord?.role === 'ADMIN' || userRecord?.role === 'RECRUITER' || userRecord?.role === 'SUPER_ADMIN') {
       url.pathname = '/admin';
     } else {
       url.pathname = '/candidate';

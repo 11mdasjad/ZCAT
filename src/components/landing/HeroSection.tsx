@@ -129,7 +129,7 @@ export default function HeroSection() {
                 <div className="p-5 font-mono text-sm space-y-1.5 bg-[#0d1117]">
                   <div><span className="text-[#7c3aed]">class</span> <span className="text-[#00d4ff]">ZCATEngine</span> {'{'}</div>
                   <div className="pl-4"><span className="text-[#7c3aed]">async</span> <span className="text-[#f59e0b]">evaluateCandidate</span>(<span className="text-[#ec4899]">submission</span>) {'{'}</div>
-                  <div className="pl-8"><span className="text-[#484f58]">// AI-powered code analysis</span></div>
+                  <div className="pl-8"><span className="text-[#484f58]">{'// AI-powered code analysis'}</span></div>
                   <div className="pl-8"><span className="text-[#7c3aed]">const</span> <span className="text-white">result</span> = <span className="text-[#7c3aed]">await</span> <span className="text-[#f59e0b]">this</span>.<span className="text-[#00d4ff]">runTests</span>(<span className="text-[#ec4899]">submission</span>);</div>
                   <div className="pl-8"><span className="text-[#7c3aed]">const</span> <span className="text-white">score</span> = <span className="text-[#f59e0b]">this</span>.<span className="text-[#00d4ff]">calculateScore</span>(<span className="text-white">result</span>);</div>
                   <div className="pl-8"><span className="text-[#7c3aed]">const</span> <span className="text-white">integrity</span> = <span className="text-[#f59e0b]">this</span>.<span className="text-[#00d4ff]">checkProctoring</span>();</div>

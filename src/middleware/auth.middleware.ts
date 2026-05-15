@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { UnauthorizedError } from '@/lib/errors/app-error';
 import { errorResponse } from '@/lib/utils/response';
+import prisma from '@/lib/prisma/client';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -20,18 +21,17 @@ export interface AuthenticatedRequest extends NextRequest {
  * Verify authentication token
  */
 export async function authMiddleware(
-  req: NextRequest
+  _req: NextRequest
 ): Promise<{ user: any; error: null } | { user: null; error: NextResponse }> {
   try {
     const supabase = await createClient();
     
-    // Get session from Supabase
     const {
-      data: { session },
+      data: { user: authUser },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (error || !session) {
+    if (error || !authUser) {
       return {
         user: null,
         error: errorResponse(
@@ -40,27 +40,25 @@ export async function authMiddleware(
       };
     }
 
-    // Get user profile with role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, email, role')
-      .eq('id', session.user.id)
-      .single();
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { id: true, email: true, role: true },
+    });
 
-    if (profileError || !profile) {
+    if (!user) {
       return {
         user: null,
         error: errorResponse(
-          new UnauthorizedError('User profile not found')
+          new UnauthorizedError('User record not found')
         ),
       };
     }
 
     return {
       user: {
-        id: profile.id,
-        email: profile.email,
-        role: profile.role,
+        id: user.id,
+        email: user.email,
+        role: user.role,
       },
       error: null,
     };
@@ -76,27 +74,26 @@ export async function authMiddleware(
  * Optional authentication - doesn't fail if no token
  */
 export async function optionalAuthMiddleware(
-  req: NextRequest
+  _req: NextRequest
 ): Promise<{ user: any | null }> {
   try {
     const supabase = await createClient();
     
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!authUser) {
       return { user: null };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, email, role')
-      .eq('id', session.user.id)
-      .single();
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { id: true, email: true, role: true },
+    });
 
     return {
-      user: profile || null,
+      user: user || null,
     };
   } catch (error) {
     return { user: null };

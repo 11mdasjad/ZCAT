@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ef4444] rounded-full" />
             </button>
-            <Link href={user?.role === 'admin' || user?.role === 'recruiter' ? '/admin/settings' : '/candidate/profile'} className="flex items-center gap-2 pl-4 border-l border-[#21262d]">
+            <Link href={user?.role === 'admin' || user?.role === 'recruiter' ? '/admin/profile' : '/candidate/profile'} className="flex items-center gap-2 pl-4 border-l border-[#21262d]">
               {user?.avatar ? (
                 <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
               ) : (

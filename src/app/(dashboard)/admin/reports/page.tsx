@@ -4,6 +4,11 @@ import { motion } from 'framer-motion';
 import { FileDown, Calendar, Filter, Download } from 'lucide-react';
 import { mockTestHistory } from '@/lib/data/mock-analytics';
 
+const candidateCounts = mockTestHistory.map((test, index) => ({
+  id: test.id,
+  candidates: 50 + ((index + 1) * 37) % 200,
+}));
+
 export default function ReportsPage() {
   return (
     <div className="space-y-6">
@@ -44,7 +49,9 @@ export default function ReportsPage() {
                 className="border-b border-[#21262d]/50 hover:bg-white/[0.02]">
                 <td className="px-5 py-4 text-sm text-white">{test.title}</td>
                 <td className="px-5 py-4 text-sm text-[#8b949e]">{test.date}</td>
-                <td className="px-5 py-4 text-sm text-[#8b949e]">{Math.floor(Math.random() * 200 + 50)}</td>
+                <td className="px-5 py-4 text-sm text-[#8b949e]">
+                  {candidateCounts.find((item) => item.id === test.id)?.candidates ?? 50}
+                </td>
                 <td className="px-5 py-4 text-sm text-white">{test.percentage}%</td>
                 <td className="px-5 py-4">
                   <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-xs text-[#8b949e] hover:text-[#00d4ff] hover:border-[#00d4ff]/30 transition-all">

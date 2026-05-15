@@ -23,8 +23,8 @@ const assessmentStatusSchema = z.enum([
   'ARCHIVED',
 ]);
 
-// Create assessment schema
-export const createAssessmentSchema = z.object({
+// Base assessment object schema
+export const assessmentBaseSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(2000),
   type: assessmentTypeSchema,
@@ -48,7 +48,10 @@ export const createAssessmentSchema = z.object({
     )
     .min(1)
     .optional(),
-}).refine(
+});
+
+// Create assessment schema
+export const createAssessmentSchema = assessmentBaseSchema.refine(
   (data) => {
     if (data.startTime && data.endTime) {
       return data.endTime > data.startTime;
@@ -68,7 +71,7 @@ export const createAssessmentSchema = z.object({
 );
 
 // Update assessment schema
-export const updateAssessmentSchema = createAssessmentSchema.partial();
+export const updateAssessmentSchema = assessmentBaseSchema.partial();
 
 // Publish assessment schema
 export const publishAssessmentSchema = z.object({

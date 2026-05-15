@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
 
     const result = await questionService.getQuestions(queryParams);
 
-    return successResponse(result, 'Questions fetched successfully');
+    return successResponse(result);
   } catch (error) {
     if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode);
+      return errorResponse(error, error.statusCode);
     }
 
-    logger.error('GET /api/v1/questions error', { error });
-    return errorResponse('Failed to fetch questions', 500);
+    logger.error('GET /api/v1/questions error', { error, params: request.url });
+    return errorResponse(new Error('Failed to fetch questions'), 500);
   }
 }

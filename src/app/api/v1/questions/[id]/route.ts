@@ -11,24 +11,25 @@ import { logger } from '@/lib/logger/logger';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<unknown> }
 ) {
   try {
+    const resolvedParams = await params;
     // Validate ID parameter
-    const { id } = questionIdParamSchema.parse(params);
+    const { id } = questionIdParamSchema.parse(resolvedParams);
 
     // TODO: Get user ID from auth session
     const userId = undefined;
 
     const question = await questionService.getQuestionById(id, userId);
 
-    return successResponse(question, 'Question fetched successfully');
+    return successResponse(question);
   } catch (error) {
     if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode);
+      return errorResponse(error, error.statusCode);
     }
 
     logger.error('GET /api/v1/questions/:id error', { error, params });
-    return errorResponse('Failed to fetch question', 500);
+    return errorResponse(new Error('Failed to fetch question'), 500);
   }
 }

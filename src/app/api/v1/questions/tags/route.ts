@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
   try {
     const tags = await questionService.getTags();
 
-    return successResponse({ tags }, 'Tags fetched successfully');
+    return successResponse({ tags });
   } catch (error) {
     if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode);
+      return errorResponse(error, error.statusCode);
     }
 
     logger.error('GET /api/v1/questions/tags error', { error });
-    return errorResponse('Failed to fetch tags', 500);
+    return errorResponse(new Error('Failed to fetch tags'), 500);
   }
 }

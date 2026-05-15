@@ -33,7 +33,7 @@ async function main() {
   const defaultTestCases = [
     {
       input: '[]',
-      output: '[]',
+      expectedOutput: '[]',
       isHidden: false,
       isSample: true,
     },
@@ -66,7 +66,7 @@ async function main() {
           testCases: {
             create: defaultTestCases.map((tc) => ({
               input: tc.input,
-              output: tc.output,
+              expectedOutput: tc.expectedOutput,
               isHidden: tc.isHidden,
               isSample: tc.isSample,
             })),
