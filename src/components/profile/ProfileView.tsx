@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, MapPin, Upload, Plus, X, 
   Loader2, Check, AlertCircle, GraduationCap, Calendar, 
-  Globe, FileText, Phone, Clock
+  Globe, FileText, Phone, Clock, Save
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ZCATLoader from '@/components/shared/ZCATLoader';
 
 type ProfileUpdates = Partial<{
   name: string;
@@ -48,74 +49,137 @@ interface ProfileData {
   } | null;
 }
 
+const PROFILE_STORAGE_KEY = 'zcat_profile_data';
+
+function loadProfileFromStorage(): ProfileData | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+}
+
+function saveProfileToStorage(profile: ProfileData) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch {}
+}
+
 export default function ProfileView() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [newSkill, setNewSkill] = useState('');
+  const [useLocalStorage, setUseLocalStorage] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const didFetchProfileRef = useRef(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProfile = useCallback(async () => {
+    setLoading(true);
+
+    // Step 1: Always load from localStorage FIRST for instant display
+    const stored = loadProfileFromStorage();
+    if (stored) {
+      setProfile(stored);
+      setUseLocalStorage(true);
+    }
+
+    // Step 2: Try to fetch from API (may fail if not authenticated)
     try {
-      setLoading(true);
       const response = await fetch('/api/v1/profile', {
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
+      if (!response.ok) throw new Error('Failed to fetch profile');
 
       const data = await response.json();
+      // API succeeded — use server data (source of truth)
       setProfile(data.data);
+      saveProfileToStorage(data.data); // keep localStorage in sync
+      setUseLocalStorage(false);
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
+      console.error('Profile API unavailable:', error);
+      // If we already loaded from localStorage, keep that data
+      if (stored) {
+        // Already set above, no toast spam on revisit
+      } else {
+        // No localStorage and no API — create a default
+        const defaultProfile: ProfileData = {
+          id: 'local', email: '', name: 'User', role: 'CANDIDATE', avatarUrl: null,
+          profile: { bio: null, phone: null, location: null, timezone: null },
+          candidateProfile: { university: null, graduationYear: null, resumeUrl: null, skills: [], githubUrl: null, linkedinUrl: null, portfolioUrl: null },
+        };
+        setProfile(defaultProfile);
+        saveProfileToStorage(defaultProfile);
+        setUseLocalStorage(true);
+        toast('Using local profile — sign in to save online', { icon: '💾' });
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Auto-save with debounce
-  const autoSave = useCallback((updates: ProfileUpdates) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+  // Save profile — always saves to localStorage, tries API
+  const saveProfile = useCallback(async (updatedProfile?: ProfileData) => {
+    const profileToSave = updatedProfile || profile;
+    if (!profileToSave) return;
+
+    setSaving(true);
+
+    // Step 1: ALWAYS save to localStorage immediately (guaranteed persistence)
+    saveProfileToStorage(profileToSave);
+    setProfile(profileToSave);
+
+    // Step 2: Try to save to API
+    try {
+      const response = await fetch('/api/v1/profile', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileToSave.name,
+          bio: profileToSave.profile?.bio,
+          phone: profileToSave.profile?.phone,
+          location: profileToSave.profile?.location,
+          timezone: profileToSave.profile?.timezone,
+          university: profileToSave.candidateProfile?.university,
+          graduationYear: profileToSave.candidateProfile?.graduationYear,
+          skills: profileToSave.candidateProfile?.skills,
+          githubUrl: profileToSave.candidateProfile?.githubUrl,
+          linkedinUrl: profileToSave.candidateProfile?.linkedinUrl,
+          portfolioUrl: profileToSave.candidateProfile?.portfolioUrl,
+        }),
+      });
+
+      if (!response.ok) throw new Error('API save failed');
+
+      const data = await response.json();
+      setProfile(data.data);
+      saveProfileToStorage(data.data);
+      setLastSaved(new Date());
+      setIsDirty(false);
+      setUseLocalStorage(false);
+      toast.success('Profile saved to server!', { duration: 2000 });
+    } catch {
+      // API failed — localStorage already saved above
+      setLastSaved(new Date());
+      setIsDirty(false);
+      setUseLocalStorage(true);
+      toast.success('Saved locally', { icon: '💾', duration: 2000 });
+    } finally {
+      setSaving(false);
     }
+  }, [profile]);
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        const response = await fetch('/api/v1/profile', {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save profile');
-        }
-
-        const data = await response.json();
-        setProfile(data.data);
-        setLastSaved(new Date());
-        toast.success('Changes saved', { duration: 2000 });
-      } catch (error) {
-        console.error('Error saving profile:', error);
-        toast.error('Failed to save changes');
-      } finally {
-        setSaving(false);
-      }
-    }, 1000); // 1 second debounce
+  // Marks that there are unsaved changes
+  const markDirty = useCallback(() => {
+    setIsDirty(true);
   }, []);
 
   // Fetch profile data
@@ -160,8 +224,8 @@ export default function ProfileView() {
       return prev;
     });
 
-    // Trigger auto-save
-    autoSave({ [field]: value });
+    // Mark as dirty (user needs to click Save)
+    markDirty();
   };
 
   // Handle skills
@@ -180,7 +244,7 @@ export default function ProfileView() {
       candidateProfile: { ...profile.candidateProfile, skills: updatedSkills },
     });
     setNewSkill('');
-    autoSave({ skills: updatedSkills });
+    markDirty();
   };
 
   const removeSkill = (skillToRemove: string) => {
@@ -191,7 +255,7 @@ export default function ProfileView() {
       ...profile,
       candidateProfile: { ...profile.candidateProfile, skills: updatedSkills },
     });
-    autoSave({ skills: updatedSkills });
+    markDirty();
   };
 
   // Handle avatar upload
@@ -308,14 +372,7 @@ export default function ProfileView() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin mx-auto mb-4" />
-          <p className="text-sm text-[#8b949e]">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <ZCATLoader message="Loading your profile..." fullScreen />;
   }
 
   if (!profile) {
@@ -346,40 +403,43 @@ export default function ProfileView() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Header with Auto-save Indicator */}
+      {/* Header with Save Button */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Profile</h1>
           <p className="text-sm text-[#8b949e] mt-1">Manage your personal information and preferences.</p>
+          {useLocalStorage && (
+            <p className="text-xs text-[#f59e0b] mt-1 flex items-center gap-1">💾 Offline mode — data saved locally</p>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <AnimatePresence mode="wait">
             {saving ? (
-              <motion.div
-                key="saving"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20"
-              >
+              <motion.div key="saving" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20">
                 <Loader2 className="w-3.5 h-3.5 text-[#f59e0b] animate-spin" />
                 <span className="text-xs text-[#f59e0b]">Saving...</span>
               </motion.div>
             ) : lastSaved ? (
-              <motion.div
-                key="saved"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20"
-              >
+              <motion.div key="saved" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20">
                 <Check className="w-3.5 h-3.5 text-[#10b981]" />
-                <span className="text-xs text-[#10b981]">
-                  Saved {lastSaved.toLocaleTimeString()}
-                </span>
+                <span className="text-xs text-[#10b981]">Saved {lastSaved.toLocaleTimeString()}</span>
               </motion.div>
             ) : null}
           </AnimatePresence>
+          <button
+            onClick={() => saveProfile()}
+            disabled={saving || !isDirty}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              isDirty
+                ? 'bg-gradient-to-r from-[#0066ff] to-[#7c3aed] text-white hover:shadow-[0_0_20px_rgba(0,102,255,0.3)] cursor-pointer'
+                : 'bg-[#161b22] text-[#484f58] border border-[#21262d] cursor-not-allowed'
+            } disabled:opacity-50`}
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : isDirty ? 'Save Changes' : 'Saved'}
+          </button>
         </div>
       </div>
 
@@ -685,14 +745,33 @@ export default function ProfileView() {
         </>
       )}
 
+      {/* Save Button (Bottom) */}
+      {isDirty && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-4 z-10">
+          <div className="glass-strong rounded-xl p-4 flex items-center justify-between border border-[#0066ff]/30">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse" />
+              <span className="text-sm text-[#8b949e]">You have unsaved changes</span>
+            </div>
+            <button
+              onClick={() => saveProfile()}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#7c3aed] text-white text-sm font-medium hover:shadow-[0_0_20px_rgba(0,102,255,0.3)] transition-all disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Info Banner */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card rounded-xl p-4 border-l-4 border-[#00d4ff]">
         <div className="flex items-start gap-3">
-          <Clock className="w-5 h-5 text-[#00d4ff] mt-0.5 flex-shrink-0" />
+          <Save className="w-5 h-5 text-[#00d4ff] mt-0.5 flex-shrink-0" />
           <div>
-            <h4 className="text-sm font-semibold text-white mb-1">Auto-save enabled</h4>
+            <h4 className="text-sm font-semibold text-white mb-1">Click Save to persist changes</h4>
             <p className="text-xs text-[#8b949e]">
-              Your changes are automatically saved as you type. No need to click a save button!
+              Edit your profile fields and click the Save button to persist your changes. Data is saved to the server when connected, or locally when offline.
             </p>
           </div>
         </div>

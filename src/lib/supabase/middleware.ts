@@ -32,23 +32,60 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Basic route protection
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-  const isDashboardRoute = request.nextUrl.pathname.startsWith('/candidate') || request.nextUrl.pathname.startsWith('/admin');
+  // Route classification
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isCandidateRoute = pathname.startsWith('/candidate');
+  const isDashboardRoute = isAdminRoute || isCandidateRoute;
 
+  // ── 1. If no user is logged in, block all dashboard routes ──
   if (isDashboardRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
+  // ── 2. If user is logged in, check role-based access ──
+  if (user && isDashboardRoute) {
+    // Fetch user role from DB
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const role = userRecord?.role || user.user_metadata?.role || 'CANDIDATE';
+
+    // ── ADMIN route protection ──
+    // Only ADMIN, SUPER_ADMIN, and RECRUITER can access /admin routes
+    if (isAdminRoute) {
+      const isAdminUser = ['ADMIN', 'SUPER_ADMIN', 'RECRUITER'].includes(role.toUpperCase());
+      if (!isAdminUser) {
+        // Non-admin trying to access admin panel → redirect to candidate dashboard
+        const url = request.nextUrl.clone();
+        url.pathname = '/candidate';
+        url.searchParams.set('error', 'unauthorized');
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // ── Candidate route — admin users can access too (for testing) ──
+    // No restrictions on /candidate routes for any authenticated user
+  }
+
+  // ── 3. If already logged in and hitting auth routes, redirect to dashboard ──
   if (isAuthRoute && user) {
-    // If we have a user and they try to hit login/register, redirect to their dashboard
-    // We fetch role from users table not profiles
-    const { data: userRecord } = await supabase.from('users').select('role').eq('id', user.id).single();
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const role = userRecord?.role || user.user_metadata?.role || 'CANDIDATE';
     const url = request.nextUrl.clone();
-    
-    if (userRecord?.role === 'ADMIN' || userRecord?.role === 'RECRUITER' || userRecord?.role === 'SUPER_ADMIN') {
+
+    if (['ADMIN', 'SUPER_ADMIN', 'RECRUITER'].includes(role.toUpperCase())) {
       url.pathname = '/admin';
     } else {
       url.pathname = '/candidate';

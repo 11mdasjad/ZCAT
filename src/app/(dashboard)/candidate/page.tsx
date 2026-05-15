@@ -1,13 +1,15 @@
 'use client';
 
+import { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   Code2, FileText, Trophy, BarChart3, Clock, ArrowRight,
-  Zap, Target, TrendingUp, Award,
+  Zap, Target, TrendingUp, Award, Inbox,
 } from 'lucide-react';
-import { mockExams } from '@/lib/data/mock-exams';
-import { mockRecentActivity } from '@/lib/data/mock-analytics';
+import { useAuthStore } from '@/lib/store/auth-store';
+import { getQuestions, getQuestionStats } from '@/lib/data/questions-data';
+import toast from 'react-hot-toast';
 
 const quickActions = [
   { icon: Code2, label: 'Start Coding Challenge', href: '/candidate/challenges', color: '#00d4ff' },
@@ -16,25 +18,27 @@ const quickActions = [
   { icon: BarChart3, label: 'Performance Analytics', href: '/candidate/performance', color: '#10b981' },
 ];
 
-const summaryCards = [
-  { label: 'Tests Completed', value: '24', change: '+3 this week', icon: Target, color: '#00d4ff' },
-  { label: 'Average Score', value: '85.4%', change: '+2.1%', icon: TrendingUp, color: '#10b981' },
-  { label: 'Global Rank', value: '#42', change: '↑ 5 positions', icon: Trophy, color: '#f59e0b' },
-  { label: 'Certificates', value: '6', change: '+1 new', icon: Award, color: '#a855f7' },
-];
-
-const activityIcons: Record<string, string> = {
-  coding: '#00d4ff',
-  test: '#a855f7',
-  achievement: '#f59e0b',
-  contest: '#ec4899',
-};
-
-import { useAuthStore } from '@/lib/store/auth-store';
-
 export default function CandidateDashboard() {
   const { user } = useAuthStore();
-  
+  const stats = useMemo(() => getQuestionStats(), []);
+  const recentQuestions = useMemo(() => getQuestions({ limit: 3 }).questions, []);
+
+  // Show error toast if redirected from admin panel due to unauthorized access
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'unauthorized') {
+      toast.error('Access denied. Admin panel requires admin privileges.', { duration: 4000 });
+      window.history.replaceState({}, '', '/candidate');
+    }
+  }, []);
+
+  const summaryCards = [
+    { label: 'Available Questions', value: stats.total.toString(), change: `${stats.EASY} easy, ${stats.MEDIUM} medium`, icon: Target, color: '#00d4ff' },
+    { label: 'Easy Questions', value: stats.EASY.toString(), change: 'Ready to practice', icon: TrendingUp, color: '#10b981' },
+    { label: 'Medium Questions', value: stats.MEDIUM.toString(), change: 'Build your skills', icon: Trophy, color: '#f59e0b' },
+    { label: 'Hard Questions', value: stats.HARD.toString(), change: 'Master level', icon: Award, color: '#a855f7' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -75,72 +79,86 @@ export default function CandidateDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Upcoming Exams */}
+        {/* Featured Questions */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Upcoming Assessments</h2>
-            <Link href="/candidate/tests" className="text-xs text-[#00d4ff] hover:underline flex items-center gap-1">View All <ArrowRight className="w-3 h-3" /></Link>
+            <h2 className="text-lg font-semibold text-white">Start Practicing</h2>
+            <Link href="/candidate/challenges" className="text-xs text-[#00d4ff] hover:underline flex items-center gap-1">View All <ArrowRight className="w-3 h-3" /></Link>
           </div>
-          <div className="space-y-3">
-            {mockExams.slice(0, 3).map((exam, i) => (
-              <motion.div
-                key={exam.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 + i * 0.1 }}
-                className="glass-card rounded-xl p-4 flex items-center gap-4"
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  exam.type === 'coding' ? 'bg-[#00d4ff]/10 border border-[#00d4ff]/20' :
-                  exam.type === 'aptitude' ? 'bg-[#a855f7]/10 border border-[#a855f7]/20' :
-                  'bg-[#f59e0b]/10 border border-[#f59e0b]/20'
-                }`}>
-                  {exam.type === 'coding' ? <Code2 className="w-5 h-5 text-[#00d4ff]" /> :
-                   exam.type === 'aptitude' ? <FileText className="w-5 h-5 text-[#a855f7]" /> :
-                   <Zap className="w-5 h-5 text-[#f59e0b]" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-white truncate">{exam.title}</h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-[#484f58] flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {exam.duration} min
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      exam.difficulty === 'easy' ? 'bg-[#10b981]/10 text-[#10b981]' :
-                      exam.difficulty === 'medium' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
-                      'bg-[#ef4444]/10 text-[#ef4444]'
-                    }`}>
-                      {exam.difficulty}
-                    </span>
+          {recentQuestions.length > 0 ? (
+            <div className="space-y-3">
+              {recentQuestions.map((q, i) => (
+                <motion.div
+                  key={q.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className="glass-card rounded-xl p-4 flex items-center gap-4"
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    q.difficulty === 'EASY' ? 'bg-[#10b981]/10 border border-[#10b981]/20' :
+                    q.difficulty === 'MEDIUM' ? 'bg-[#f59e0b]/10 border border-[#f59e0b]/20' :
+                    'bg-[#ef4444]/10 border border-[#ef4444]/20'
+                  }`}>
+                    <Code2 className={`w-5 h-5 ${
+                      q.difficulty === 'EASY' ? 'text-[#10b981]' :
+                      q.difficulty === 'MEDIUM' ? 'text-[#f59e0b]' : 'text-[#ef4444]'
+                    }`} />
                   </div>
-                </div>
-                <Link href={`/code/${exam.id}`} className="btn-neon btn-neon-secondary !py-2 !px-4 text-xs">
-                  Start
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-white truncate">{q.title}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-[#484f58] flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {q.timeLimit}ms
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        q.difficulty === 'EASY' ? 'bg-[#10b981]/10 text-[#10b981]' :
+                        q.difficulty === 'MEDIUM' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
+                        'bg-[#ef4444]/10 text-[#ef4444]'
+                      }`}>
+                        {q.difficulty.toLowerCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <Link href={`/code/${q.id}`} className="btn-neon btn-neon-secondary !py-2 !px-4 text-xs">
+                    Solve
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card rounded-xl p-8 text-center">
+              <Inbox className="w-10 h-10 text-[#484f58] mx-auto mb-3" />
+              <p className="text-sm text-[#8b949e]">No questions available yet.</p>
+            </div>
+          )}
         </div>
 
-        {/* Recent Activity */}
+        {/* Quick Info */}
         <div>
-          <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">Platform Overview</h2>
           <div className="glass-card rounded-xl p-4 space-y-4">
-            {mockRecentActivity.map((activity, i) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 + i * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: activityIcons[activity.type] }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#e4e8f1] leading-snug">{activity.action}</p>
-                  <p className="text-xs text-[#484f58] mt-0.5">{activity.time}</p>
-                </div>
-              </motion.div>
-            ))}
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-[#00d4ff]" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[#e4e8f1] leading-snug">{stats.total} coding challenges available</p>
+                <p className="text-xs text-[#484f58] mt-0.5">Practice at your own pace</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-[#a855f7]" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[#e4e8f1] leading-snug">Multiple difficulty levels</p>
+                <p className="text-xs text-[#484f58] mt-0.5">From easy to hard</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-[#f59e0b]" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[#e4e8f1] leading-snug">Built-in code editor</p>
+                <p className="text-xs text-[#484f58] mt-0.5">Write and test your solutions</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -156,7 +174,7 @@ export default function CandidateDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + i * 0.1 }}
             >
-              <Link href={href} className="glass-card rounded-xl p-5 flex flex-col items-center gap-3 text-center group hover:border-[color]/20">
+              <Link href={href} className="glass-card rounded-xl p-5 flex flex-col items-center gap-3 text-center group">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
                   <Icon className="w-5 h-5" style={{ color }} />
                 </div>

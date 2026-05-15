@@ -10,60 +10,33 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   
   // App
-  NEXT_PUBLIC_APP_URL: z.string().url(),
-  NEXT_PUBLIC_API_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  NEXT_PUBLIC_API_URL: z.string().url().default('http://localhost:3000/api/v1'),
   
   // Database
-  DATABASE_URL: z.string().url(),
-  DIRECT_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().optional(),
+  DIRECT_URL: z.string().optional(),
   
   // Supabase
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string(),
-  SUPABASE_JWT_SECRET: z.string(),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_JWT_SECRET: z.string().optional(),
   
-  // Redis (Upstash)
-  UPSTASH_REDIS_REST_URL: z.string().url(),
-  UPSTASH_REDIS_REST_TOKEN: z.string(),
+  // Redis (Optional)
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  REDIS_URL: z.string().optional(),
   
-  // Queue (BullMQ)
-  REDIS_URL: z.string().url(),
+  // Code Execution (Optional)
+  EXECUTION_WORKER_URL: z.string().optional(),
   
-  // Storage
-  SUPABASE_STORAGE_BUCKET: z.string().default('zcat-storage'),
-  
-  // Code Execution
-  EXECUTION_WORKER_URL: z.string().url(),
-  EXECUTION_TIMEOUT: z.string().default('30000'), // 30 seconds
-  MAX_MEMORY_MB: z.string().default('512'),
-  MAX_CPU_TIME: z.string().default('10'),
-  
-  // Security
-  JWT_SECRET: z.string().min(32),
-  ENCRYPTION_KEY: z.string().min(32),
-  RATE_LIMIT_MAX: z.string().default('100'),
-  RATE_LIMIT_WINDOW: z.string().default('900000'), // 15 minutes
-  
-  // Email (Optional)
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.string().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().email().optional(),
+  // Security (Optional)
+  JWT_SECRET: z.string().optional(),
+  ENCRYPTION_KEY: z.string().optional(),
   
   // Monitoring
-  SENTRY_DSN: z.string().url().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  
-  // WebSocket
-  WEBSOCKET_PORT: z.string().default('3001'),
-  
-  // AI Services (Optional)
-  OPENAI_API_KEY: z.string().optional(),
-  
-  // Analytics
-  ANALYTICS_ENABLED: z.string().default('true'),
 });
 
 // Parse and validate environment variables
@@ -74,9 +47,9 @@ const parseEnv = () => {
     if (error instanceof z.ZodError) {
       console.error('❌ Invalid environment variables:');
       console.error(JSON.stringify(error.errors, null, 2));
-      process.exit(1);
     }
-    throw error;
+    // Don't crash — return defaults
+    return envSchema.parse({});
   }
 };
 

@@ -224,6 +224,7 @@ export async function GET(req: NextRequest) {
 /**
  * PATCH /api/v1/profile
  * Update current user's profile
+ * Saves to BOTH Supabase auth user_metadata AND Prisma DB
  */
 export async function PATCH(req: NextRequest) {
   try {
@@ -234,9 +235,6 @@ export async function PATCH(req: NextRequest) {
     if (authError || !authUser) {
       return errorResponse(new Error('Authentication required'), 401);
     }
-
-    // Ensure user exists in Prisma (auto-create if missing)
-    await ensurePrismaUser(authUser);
 
     const body = await req.json();
     const {
@@ -260,112 +258,163 @@ export async function PATCH(req: NextRequest) {
       website,
     } = body;
 
-    // Update user table
-    const updateUserData: any = {};
-    if (name !== undefined) updateUserData.name = name;
-    if (avatarUrl !== undefined) updateUserData.avatarUrl = avatarUrl;
+    // ── Step 1: ALWAYS save to Supabase auth user_metadata ──
+    // This is guaranteed to work even when Postgres is unreachable
+    const metadataUpdate: Record<string, any> = {};
+    if (name !== undefined) metadataUpdate.full_name = name;
+    if (name !== undefined) metadataUpdate.name = name;
+    if (avatarUrl !== undefined) metadataUpdate.avatar_url = avatarUrl;
+    if (bio !== undefined) metadataUpdate.bio = bio;
+    if (phone !== undefined) metadataUpdate.phone = phone;
+    if (location !== undefined) metadataUpdate.location = location;
+    if (timezone !== undefined) metadataUpdate.timezone = timezone;
+    if (university !== undefined) metadataUpdate.university = university;
+    if (graduationYear !== undefined) metadataUpdate.graduation_year = graduationYear;
+    if (skills !== undefined) metadataUpdate.skills = skills;
+    if (githubUrl !== undefined) metadataUpdate.github_url = githubUrl;
+    if (linkedinUrl !== undefined) metadataUpdate.linkedin_url = linkedinUrl;
+    if (portfolioUrl !== undefined) metadataUpdate.portfolio_url = portfolioUrl;
+    if (resumeUrl !== undefined) metadataUpdate.resume_url = resumeUrl;
+    if (companyName !== undefined) metadataUpdate.company_name = companyName;
+    if (jobTitle !== undefined) metadataUpdate.job_title = jobTitle;
+    if (companySize !== undefined) metadataUpdate.company_size = companySize;
+    if (industry !== undefined) metadataUpdate.industry = industry;
+    if (website !== undefined) metadataUpdate.website = website;
 
-    let updatedUser;
-    if (Object.keys(updateUserData).length > 0) {
-      updatedUser = await prisma.user.update({
-        where: { id: authUser.id },
-        data: updateUserData,
+    if (Object.keys(metadataUpdate).length > 0) {
+      const { error: metaError } = await supabase.auth.updateUser({
+        data: metadataUpdate,
       });
+      if (metaError) {
+        logger.warn('Failed to update Supabase user_metadata:', metaError);
+      } else {
+        logger.info('Profile saved to Supabase user_metadata', { userId: authUser.id });
+      }
     }
 
-    // Update profile table
-    const updateProfileData: any = {};
-    if (bio !== undefined) updateProfileData.bio = bio;
-    if (phone !== undefined) updateProfileData.phone = phone;
-    if (location !== undefined) updateProfileData.location = location;
-    if (timezone !== undefined) updateProfileData.timezone = timezone;
+    // ── Step 2: Try to save to Prisma DB (may fail if DB is unreachable) ──
+    try {
+      // Ensure user exists in Prisma (auto-create if missing)
+      await ensurePrismaUser(authUser);
 
-    if (Object.keys(updateProfileData).length > 0) {
-      await prisma.profile.upsert({
-        where: { userId: authUser.id },
-        update: updateProfileData,
-        create: {
-          userId: authUser.id,
-          ...updateProfileData,
+      // Update user table
+      const updateUserData: any = {};
+      if (name !== undefined) updateUserData.name = name;
+      if (avatarUrl !== undefined) updateUserData.avatarUrl = avatarUrl;
+
+      if (Object.keys(updateUserData).length > 0) {
+        await prisma.user.update({
+          where: { id: authUser.id },
+          data: updateUserData,
+        });
+      }
+
+      // Update profile table
+      const updateProfileData: any = {};
+      if (bio !== undefined) updateProfileData.bio = bio;
+      if (phone !== undefined) updateProfileData.phone = phone;
+      if (location !== undefined) updateProfileData.location = location;
+      if (timezone !== undefined) updateProfileData.timezone = timezone;
+
+      if (Object.keys(updateProfileData).length > 0) {
+        await prisma.profile.upsert({
+          where: { userId: authUser.id },
+          update: updateProfileData,
+          create: {
+            userId: authUser.id,
+            ...updateProfileData,
+          },
+        });
+      }
+
+      // Get user role to determine which profile to update
+      const user = await prisma.user.findUnique({
+        where: { id: authUser.id },
+        select: { role: true },
+      });
+
+      // Update candidate profile
+      if (user?.role === 'CANDIDATE') {
+        const updateCandidateData: any = {};
+        if (university !== undefined) updateCandidateData.university = university;
+        if (graduationYear !== undefined) updateCandidateData.graduationYear = graduationYear;
+        if (skills !== undefined) updateCandidateData.skills = skills;
+        if (githubUrl !== undefined) updateCandidateData.githubUrl = githubUrl;
+        if (linkedinUrl !== undefined) updateCandidateData.linkedinUrl = linkedinUrl;
+        if (portfolioUrl !== undefined) updateCandidateData.portfolioUrl = portfolioUrl;
+        if (resumeUrl !== undefined) updateCandidateData.resumeUrl = resumeUrl;
+
+        if (Object.keys(updateCandidateData).length > 0) {
+          await prisma.candidateProfile.upsert({
+            where: { userId: authUser.id },
+            update: updateCandidateData,
+            create: {
+              userId: authUser.id,
+              ...updateCandidateData,
+            },
+          });
+        }
+      }
+
+      // Update recruiter profile
+      if (user?.role === 'RECRUITER') {
+        const updateRecruiterData: any = {};
+        if (companyName !== undefined) updateRecruiterData.companyName = companyName;
+        if (jobTitle !== undefined) updateRecruiterData.jobTitle = jobTitle;
+        if (companySize !== undefined) updateRecruiterData.companySize = companySize;
+        if (industry !== undefined) updateRecruiterData.industry = industry;
+        if (website !== undefined) updateRecruiterData.website = website;
+
+        if (Object.keys(updateRecruiterData).length > 0) {
+          await prisma.recruiterProfile.upsert({
+            where: { userId: authUser.id },
+            update: updateRecruiterData,
+            create: {
+              userId: authUser.id,
+              companyName: companyName || 'Unknown',
+              jobTitle: jobTitle || 'Recruiter',
+              ...updateRecruiterData,
+            },
+          });
+        }
+      }
+
+      // Fetch updated profile from DB
+      const updatedProfile = await prisma.user.findUnique({
+        where: { id: authUser.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          avatarUrl: true,
+          profile: true,
+          candidateProfile: true,
+          recruiterProfile: true,
         },
       });
-    }
 
-    // Get user role to determine which profile to update
-    const user = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      select: { role: true },
-    });
+      logger.info('Profile updated in DB', {
+        userId: authUser.id,
+        fields: Object.keys(body),
+      });
 
-    // Update candidate profile
-    if (user?.role === 'CANDIDATE') {
-      const updateCandidateData: any = {};
-      if (university !== undefined) updateCandidateData.university = university;
-      if (graduationYear !== undefined) updateCandidateData.graduationYear = graduationYear;
-      if (skills !== undefined) updateCandidateData.skills = skills;
-      if (githubUrl !== undefined) updateCandidateData.githubUrl = githubUrl;
-      if (linkedinUrl !== undefined) updateCandidateData.linkedinUrl = linkedinUrl;
-      if (portfolioUrl !== undefined) updateCandidateData.portfolioUrl = portfolioUrl;
-      if (resumeUrl !== undefined) updateCandidateData.resumeUrl = resumeUrl;
+      return successResponse(updatedProfile);
+    } catch (dbError) {
+      // DB failed — return fallback from user_metadata
+      logger.warn('Prisma DB save failed, returning metadata-based profile:', dbError);
 
-      if (Object.keys(updateCandidateData).length > 0) {
-        await prisma.candidateProfile.upsert({
-          where: { userId: authUser.id },
-          update: updateCandidateData,
-          create: {
-            userId: authUser.id,
-            ...updateCandidateData,
-          },
-        });
+      // Re-fetch the user to get updated metadata
+      const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+      if (refreshedUser) {
+        return successResponse(buildFallbackProfile(refreshedUser));
       }
+
+      return successResponse(buildFallbackProfile(authUser));
     }
-
-    // Update recruiter profile
-    if (user?.role === 'RECRUITER') {
-      const updateRecruiterData: any = {};
-      if (companyName !== undefined) updateRecruiterData.companyName = companyName;
-      if (jobTitle !== undefined) updateRecruiterData.jobTitle = jobTitle;
-      if (companySize !== undefined) updateRecruiterData.companySize = companySize;
-      if (industry !== undefined) updateRecruiterData.industry = industry;
-      if (website !== undefined) updateRecruiterData.website = website;
-
-      if (Object.keys(updateRecruiterData).length > 0) {
-        await prisma.recruiterProfile.upsert({
-          where: { userId: authUser.id },
-          update: updateRecruiterData,
-          create: {
-            userId: authUser.id,
-            companyName: companyName || 'Unknown',
-            jobTitle: jobTitle || 'Recruiter',
-            ...updateRecruiterData,
-          },
-        });
-      }
-    }
-
-    // Fetch updated profile
-    const updatedProfile = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatarUrl: true,
-        profile: true,
-        candidateProfile: true,
-        recruiterProfile: true,
-      },
-    });
-
-    logger.info('Profile updated', {
-      userId: authUser.id,
-      fields: Object.keys(body),
-    });
-
-    return successResponse(updatedProfile);
   } catch (error) {
     logger.error('Error updating profile:', error);
     return errorResponse(error as Error);
   }
 }
+

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, AlertTriangle, Trophy, TrendingUp, ArrowRight, Eye, Loader2 } from 'lucide-react';
+import { Users, FileText, AlertTriangle, Trophy, TrendingUp, ArrowRight, Eye } from 'lucide-react';
+import ZCATLoader from '@/components/shared/ZCATLoader';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -64,14 +65,7 @@ export default function AdminDashboard() {
   }, [fetchDashboardStats]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin mx-auto mb-4" />
-          <p className="text-sm text-[#8b949e]">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <ZCATLoader message="Loading admin dashboard..." fullScreen />;
   }
 
   if (!stats) {
