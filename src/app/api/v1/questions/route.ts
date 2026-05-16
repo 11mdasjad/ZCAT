@@ -34,3 +34,21 @@ export async function GET(request: NextRequest) {
     return errorResponse(new Error('Failed to fetch questions'), 500);
   }
 }
+
+/**
+ * POST /api/v1/questions
+ * Create a new question (Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const result = await questionService.createQuestion(body);
+    return successResponse(result, 201);
+  } catch (error) {
+    if (error instanceof AppError) {
+      return errorResponse(error, error.statusCode);
+    }
+    logger.error('POST /api/v1/questions error', { error });
+    return errorResponse(new Error('Failed to create question'), 500);
+  }
+}

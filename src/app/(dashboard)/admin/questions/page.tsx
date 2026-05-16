@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Code2, FileText, Edit, Trash2, Copy, X, Loader2,
-  Save, Tag, Clock, Cpu, CheckCircle, AlertCircle, ChevronDown,
+  Save, Tag, Clock, Cpu, CheckCircle, AlertCircle, ChevronDown, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ZCATLoader from '@/components/shared/ZCATLoader';
@@ -51,7 +51,9 @@ export default function QuestionsPage() {
     constraints: '',
     solution: '',
     isPublic: true,
+    testCases: [] as any[],
   });
+  const [generating, setGenerating] = useState(false);
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -101,6 +103,7 @@ export default function QuestionsPage() {
         isPublic: newQ.isPublic,
         isActive: true,
         supportedLangs: newQ.type === 'CODING' ? ['PYTHON', 'JAVASCRIPT', 'JAVA', 'CPP'] : [],
+        testCases: newQ.testCases,
       };
 
       const res = await fetch('/api/v1/questions', {
@@ -120,12 +123,56 @@ export default function QuestionsPage() {
         title: '', description: '', type: 'CODING', difficulty: 'MEDIUM',
         tags: [], tagInput: '', timeLimit: 5000, memoryLimit: 256,
         constraints: '', solution: '', isPublic: true,
+        testCases: [],
       });
       fetchQuestions();
     } catch (err: any) {
       toast.error(err.message || 'Failed to create question');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!newQ.title.trim()) {
+      toast.error('Please enter a title first');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/v1/questions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newQ.title, type: newQ.type }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error?.message || 'AI generation failed');
+      }
+
+      const data = await res.json();
+      const generated = data.data;
+
+      setNewQ({
+        ...newQ,
+        description: generated.description,
+        difficulty: generated.difficulty,
+        tags: generated.tags,
+        timeLimit: generated.timeLimit,
+        memoryLimit: generated.memoryLimit,
+        constraints: generated.constraints?.join('\n') || '',
+        testCases: generated.testCases,
+      });
+
+      toast.success('AI magic complete! Content generated.', {
+        icon: '✨',
+      });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate content. Try again.');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -294,13 +341,23 @@ export default function QuestionsPage() {
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Question Title *</label>
-                  <input
-                    type="text"
-                    value={newQ.title}
-                    onChange={(e) => setNewQ({ ...newQ, title: e.target.value })}
-                    className="input-neon w-full"
-                    placeholder="e.g. Two Sum, Valid Parentheses..."
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newQ.title}
+                      onChange={(e) => setNewQ({ ...newQ, title: e.target.value })}
+                      className="input-neon flex-1"
+                      placeholder="e.g. Two Sum, Valid Parentheses..."
+                    />
+                    <button
+                      onClick={handleGenerateAI}
+                      disabled={generating || !newQ.title.trim()}
+                      className="btn-neon bg-[#a855f7]/10 text-[#a855f7] border-[#a855f7]/20 hover:bg-[#a855f7]/20 !py-2.5 !px-3 disabled:opacity-40"
+                      title="Generate with Gemini AI"
+                    >
+                      {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Type & Difficulty */}
@@ -402,14 +459,44 @@ export default function QuestionsPage() {
                 {/* Constraints */}
                 <div>
                   <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Constraints</label>
-                  <input
-                    type="text"
+                  <textarea
                     value={newQ.constraints}
                     onChange={(e) => setNewQ({ ...newQ, constraints: e.target.value })}
-                    className="input-neon w-full"
+                    className="input-neon w-full h-20 resize-none"
                     placeholder="e.g. 1 <= n <= 10^5"
                   />
                 </div>
+
+                {/* Test Cases Preview */}
+                {newQ.testCases.length > 0 && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-[#8b949e]">
+                      Generated Test Cases ({newQ.testCases.length})
+                    </label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {newQ.testCases.map((tc, idx) => (
+                        <div key={idx} className="bg-[#161b22] border border-[#21262d] rounded-lg p-3 text-[10px]">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={tc.isSample ? "text-[#00d4ff]" : "text-[#8b949e]"}>
+                              {tc.isSample ? 'Sample' : tc.isHidden ? 'Hidden' : 'Standard'}
+                            </span>
+                            <span className="text-[#484f58]">Case #{idx + 1}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-[#484f58] uppercase mb-1">Input</p>
+                              <code className="block p-1.5 bg-black/40 rounded text-white overflow-x-auto">{tc.input}</code>
+                            </div>
+                            <div>
+                              <p className="text-[#484f58] uppercase mb-1">Output</p>
+                              <code className="block p-1.5 bg-black/40 rounded text-white overflow-x-auto">{tc.expectedOutput}</code>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Visibility */}
                 <div className="flex items-center justify-between bg-[#161b22] rounded-xl p-4 border border-[#21262d]">

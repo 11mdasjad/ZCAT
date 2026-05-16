@@ -249,6 +249,49 @@ export class QuestionService {
       throw createError.internal('Failed to update question status');
     }
   }
+
+  /**
+   * Admin: Create a new question with test cases
+   */
+  async createQuestion(data: any): Promise<Question> {
+    try {
+      const { testCases, constraints, examples, hints, ...questionData } = data;
+
+      // Ensure slug is unique
+      const existing = await questionRepository.findOne({ slug: questionData.slug });
+      if (existing) {
+        questionData.slug = `${questionData.slug}-${Date.now().toString(36)}`;
+      }
+
+      const question = await questionRepository.create({
+        ...questionData,
+        constraints: constraints || [],
+        examples: examples || [],
+        hints: hints || [],
+        testCases: {
+          create: (testCases || []).map((tc: any, index: number) => ({
+            input: tc.input,
+            expectedOutput: tc.expectedOutput,
+            isHidden: tc.isHidden ?? false,
+            isSample: tc.isSample ?? false,
+            explanation: tc.explanation,
+            orderIndex: tc.orderIndex ?? index,
+            weight: tc.weight ?? 1,
+          })),
+        },
+      });
+
+      logger.info('Question created successfully', { questionId: question.id, title: question.title });
+      return question;
+    } catch (error: any) {
+      logger.error('Failed to create question', { 
+        error: error.message, 
+        stack: error.stack,
+        data 
+      });
+      throw createError.internal(`Failed to create question: ${error.message}`);
+    }
+  }
 }
 
 export const questionService = new QuestionService();
