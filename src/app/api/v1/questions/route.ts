@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse and validate query parameters
+    // Parse and validate query parameters (convert null → undefined so Zod defaults work)
     const queryParams = questionListQuerySchema.parse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      difficulty: searchParams.get('difficulty'),
-      tags: searchParams.get('tags'),
-      search: searchParams.get('search'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      difficulty: searchParams.get('difficulty') ?? undefined,
+      tags: searchParams.get('tags') ?? undefined,
+      search: searchParams.get('search') ?? undefined,
     });
 
     const result = await questionService.getQuestions(queryParams);
