@@ -142,11 +142,11 @@ export async function GET(req: NextRequest) {
       // Assessment activity (last 7 days)
       prisma.$queryRaw`
         SELECT 
-          DATE(created_at) as date,
+          DATE(started_at) as date,
           COUNT(*) as count
         FROM exam_sessions
-        WHERE created_at >= ${oneWeekAgo}
-        GROUP BY DATE(created_at)
+        WHERE started_at >= ${oneWeekAgo}
+        GROUP BY DATE(started_at)
         ORDER BY date ASC
       `,
 
