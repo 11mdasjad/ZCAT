@@ -38,27 +38,31 @@ const consoleFormat = winston.format.combine(
   )
 );
 
-const transports = [
+const transports: any[] = [
   // Console transport
   new winston.transports.Console({
     format: isDevelopment ? consoleFormat : format,
   }),
-  
-  // Error log file
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-  
-  // Combined log file
-  new winston.transports.File({
-    filename: 'logs/combined.log',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
 ];
+
+// Vercel has a read-only filesystem, so we can't write to logs/ directory there
+if (!process.env.VERCEL) {
+  transports.push(
+    // Error log file
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    }),
+    // Combined log file
+    new winston.transports.File({
+      filename: 'logs/combined.log',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    })
+  );
+}
 
 export const logger = winston.createLogger({
   level: env.LOG_LEVEL,
