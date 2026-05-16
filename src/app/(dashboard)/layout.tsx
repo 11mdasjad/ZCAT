@@ -4,8 +4,9 @@ import { ReactNode } from 'react';
 import Sidebar from '@/components/shared/Sidebar';
 import { useUIStore } from '@/lib/store/ui-store';
 import { useAuthStore } from '@/lib/store/auth-store';
-import { Bell, Search, User } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import Link from 'next/link';
+import NotificationsPopover from '@/components/shared/NotificationsPopover';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { sidebarOpen } = useUIStore();
@@ -32,20 +33,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ef4444] rounded-full" />
-            </button>
+            <NotificationsPopover />
             <Link href={user?.role === 'admin' || user?.role === 'recruiter' ? '/admin/profile' : '/candidate/profile'} className="flex items-center gap-2 pl-4 border-l border-[#21262d]">
               {user?.avatar ? (
-                <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                <img src={user.avatar} alt="Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
                 </div>
               )}
               <span className="text-sm font-medium text-white hidden sm:block">
-                {user?.name || 'User'}
+                {user?.name ? user.name.split(' ')[0] : 'User'}
               </span>
             </Link>
           </div>

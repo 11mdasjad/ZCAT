@@ -205,7 +205,29 @@ export async function GET(req: NextRequest) {
       return errorResponse(new Error('User not found'), 404);
     }
 
-    return successResponse(user);
+    // Override placeholder DB values with real Google/OAuth metadata
+    const meta = authUser.user_metadata || {};
+    const resolvedName = (user.name && user.name !== 'User')
+      ? user.name
+      : (meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User');
+    const resolvedAvatar = user.avatarUrl || meta.avatar_url || meta.picture || null;
+
+    // If DB has stale data, update it silently in the background
+    if (resolvedName !== user.name || resolvedAvatar !== user.avatarUrl) {
+      prisma.user.update({
+        where: { id: authUser.id },
+        data: {
+          ...(resolvedName !== user.name ? { name: resolvedName } : {}),
+          ...(resolvedAvatar !== user.avatarUrl ? { avatarUrl: resolvedAvatar } : {}),
+        },
+      }).catch(() => {}); // fire-and-forget
+    }
+
+    return successResponse({
+      ...user,
+      name: resolvedName,
+      avatarUrl: resolvedAvatar,
+    });
   } catch (error) {
     logger.error('Error fetching profile:', error);
     if (isPrismaConnectionError(error)) {

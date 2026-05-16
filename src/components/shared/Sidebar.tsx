@@ -10,7 +10,7 @@ import {
   Award, User, Brain, History, BookOpen,
   Users, PlusCircle, Database, Eye, LineChart,
   FileDown, Settings, Zap, ChevronLeft, LogOut,
-  Shield, HelpCircle,
+  Shield, HelpCircle, Megaphone,
 } from 'lucide-react';
 
 const candidateLinks = [
@@ -32,6 +32,7 @@ const adminLinks = [
   { href: '/admin/questions', icon: Database, label: 'Question Bank' },
   { href: '/admin/monitoring', icon: Eye, label: 'Live Monitoring' },
   { href: '/admin/analytics', icon: LineChart, label: 'Analytics' },
+  { href: '/admin/broadcast', icon: Megaphone, label: 'Broadcast Alerts' },
   { href: '/admin/reports', icon: FileDown, label: 'Reports' },
   { href: '/admin/profile', icon: User, label: 'Profile' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
@@ -44,8 +45,8 @@ export default function Sidebar() {
   const { logout } = useAuthStore();
 
   const handleLogout = async () => {
-    await logout();
-    router.push('/');
+    await fetch('/auth/logout', { method: 'POST' });
+    window.location.assign('/login');
   };
 
   const isAdmin = pathname.startsWith('/admin');

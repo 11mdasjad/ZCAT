@@ -42,7 +42,7 @@ export default function RegisterPage() {
     
     setLoading(true);
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -64,8 +64,13 @@ export default function RegisterPage() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Registration successful! Please check your email to verify.');
-      router.push('/login');
+      if (data.session) {
+        toast.success('Account created successfully!');
+        window.location.href = '/candidate';
+      } else {
+        toast.success('Registration successful! Please check your email to verify.');
+        router.push('/login');
+      }
     }
   };
 

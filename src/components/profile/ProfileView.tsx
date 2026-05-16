@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ZCATLoader from '@/components/shared/ZCATLoader';
+import { useAuthStore } from '@/lib/store/auth-store';
 
 type ProfileUpdates = Partial<{
   name: string;
@@ -165,6 +166,10 @@ export default function ProfileView() {
       setLastSaved(new Date());
       setIsDirty(false);
       setUseLocalStorage(false);
+      
+      // Update the global layout/sidebar instantly!
+      useAuthStore.getState().initialize();
+      
       toast.success('Profile saved to server!', { duration: 2000 });
     } catch {
       // API failed — localStorage already saved above
@@ -303,6 +308,10 @@ export default function ProfileView() {
       });
 
       setProfile((prev) => prev ? { ...prev, avatarUrl } : prev);
+      
+      // Sync global layout/sidebar
+      useAuthStore.getState().initialize();
+      
       toast.success('Avatar updated successfully');
     } catch (error) {
       console.error('Error uploading avatar:', error);
