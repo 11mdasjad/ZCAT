@@ -5,13 +5,23 @@
 
 import { z } from 'zod';
 
+// Auto-detect the app URL: explicit env var > Vercel URL > localhost fallback
+const getDefaultAppUrl = (): string => {
+  if (typeof process !== 'undefined') {
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+    if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  }
+  return 'http://localhost:3000';
+};
+
 const envSchema = z.object({
   // Node Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   
   // App
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
-  NEXT_PUBLIC_API_URL: z.string().url().default('http://localhost:3000/api/v1'),
+  NEXT_PUBLIC_APP_URL: z.string().url().default(getDefaultAppUrl()),
+  NEXT_PUBLIC_API_URL: z.string().url().default(`${getDefaultAppUrl()}/api/v1`),
   
   // Database
   DATABASE_URL: z.string().optional(),
