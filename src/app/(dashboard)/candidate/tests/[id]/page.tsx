@@ -852,8 +852,35 @@ export default function MixedCandidateExamWorkspace() {
     </div></div>
   );
 
+  const totalQuestions = assessment.questions?.length || 0;
+
+  if (totalQuestions === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#06080f]">
+        <div className="text-center p-6 glass-card max-w-md border border-[#ef4444]/20 shadow-2xl">
+          <AlertTriangle className="w-12 h-12 text-[#eab308] mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-white mb-2">No Questions Available</h2>
+          <p className="text-sm text-[#8b949e] mb-4">This assessment doesn't contain any questions yet. Please contact the administrator.</p>
+          <button onClick={() => router.push('/candidate/tests')} className="btn-neon btn-neon-secondary px-4 py-2 text-sm w-full">Back to Tests Hub</button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQuestion = assessment.questions[currentQuestionIdx];
-  const totalQuestions = assessment.questions.length;
+  if (!currentQuestion) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#06080f]">
+        <div className="text-center p-6 glass-card max-w-md border border-[#ef4444]/20 shadow-2xl">
+          <AlertTriangle className="w-12 h-12 text-[#eab308] mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-white mb-2">Question Out Of Bounds</h2>
+          <p className="text-sm text-[#8b949e] mb-4">The selected question index is invalid. Total questions: {totalQuestions}.</p>
+          <button onClick={() => setCurrentQuestionIdx(0)} className="btn-neon btn-neon-secondary px-4 py-2 text-sm w-full">Reset to Question 1</button>
+        </div>
+      </div>
+    );
+  }
+
   const progressPercent = (Object.keys(submittedAnswers).length / totalQuestions) * 100;
   const isLastQuestion = currentQuestionIdx === totalQuestions - 1;
 
