@@ -7,10 +7,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
-import { writeFile, unlink, mkdir } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { tmpdir } from 'os';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 const MAX_EXECUTION_TIME = 5000; // 5 seconds
 const MAX_OUTPUT_SIZE = 10000; // 10KB
@@ -24,31 +27,89 @@ interface ExecutionResult {
 }
 
 async function executeCode(language: string, code: string, stdin: string): Promise<ExecutionResult> {
-  if (!['python', 'javascript'].includes(language)) {
-    return { stdout: '', stderr: `Language "${language}" is not supported. Supported: python, javascript`, exitCode: 1, executionTime: 0, timedOut: false };
+  const normalizedLang = language.toLowerCase().trim();
+  if (!['python', 'javascript', 'cpp', 'java'].includes(normalizedLang)) {
+    return {
+      stdout: '',
+      stderr: `Language "${language}" is not supported. Supported: python, javascript, cpp, java`,
+      exitCode: 1,
+      executionTime: 0,
+      timedOut: false,
+    };
   }
 
   const id = randomUUID();
-  const ext = language === 'python' ? '.py' : '.js';
-  const tempDir = join(tmpdir(), 'zcat-exec');
-  const filePath = join(tempDir, `${id}${ext}`);
+  const tempDir = join(tmpdir(), 'zcat-exec', id);
+
+  let ext = '';
+  let className = 'Main';
+  if (normalizedLang === 'python') ext = '.py';
+  else if (normalizedLang === 'javascript') ext = '.js';
+  else if (normalizedLang === 'cpp') ext = '.cpp';
+  else if (normalizedLang === 'java') {
+    const match = code.match(/public\s+class\s+(\w+)/);
+    className = match ? match[1] : 'Main';
+    ext = '.java';
+  }
+
+  const fileName = normalizedLang === 'java' ? `${className}${ext}` : `${id}${ext}`;
+  const filePath = join(tempDir, fileName);
   const stdinPath = join(tempDir, `${id}.stdin`);
 
   try {
     await mkdir(tempDir, { recursive: true });
     await writeFile(filePath, code, 'utf-8');
 
-    // Write stdin to a temp file if provided, and pipe it
-    let cmd = language === 'python' ? `python3 "${filePath}"` : `node "${filePath}"`;
-    if (stdin && stdin.trim()) {
-      await writeFile(stdinPath, stdin, 'utf-8');
-      cmd = `cat "${stdinPath}" | ${cmd}`;
+    let runCmd = '';
+    let compileCmd = '';
+
+    if (normalizedLang === 'python') {
+      runCmd = `python3 "${filePath}"`;
+    } else if (normalizedLang === 'javascript') {
+      runCmd = `node "${filePath}"`;
+    } else if (normalizedLang === 'cpp') {
+      const outPath = join(tempDir, `${id}.out`);
+      compileCmd = `g++ -O3 "${filePath}" -o "${outPath}"`;
+      runCmd = `"${outPath}"`;
+    } else if (normalizedLang === 'java') {
+      compileCmd = `javac "${filePath}"`;
+      runCmd = `java -cp "${tempDir}" "${className}"`;
     }
 
     const startTime = Date.now();
 
+    // Compile if necessary
+    if (compileCmd) {
+      const compileResult = await new Promise<{ success: boolean; stderr: string }>((resolve) => {
+        exec(compileCmd, { timeout: 8000, shell: '/bin/bash' }, (error, stdout, stderr) => {
+          if (error) {
+            resolve({ success: false, stderr: stderr || error.message || 'Compilation failed.' });
+          } else {
+            resolve({ success: true, stderr: '' });
+          }
+        });
+      });
+
+      if (!compileResult.success) {
+        // Cleanup immediately
+        await execPromise(`rm -rf "${tempDir}"`).catch(() => {});
+        return {
+          stdout: '',
+          stderr: `Compilation Error:\n${compileResult.stderr}`,
+          exitCode: 1,
+          executionTime: Date.now() - startTime,
+          timedOut: false,
+        };
+      }
+    }
+
+    if (stdin && stdin.trim()) {
+      await writeFile(stdinPath, stdin, 'utf-8');
+      runCmd = `cat "${stdinPath}" | ${runCmd}`;
+    }
+
     return new Promise<ExecutionResult>((resolve) => {
-      exec(cmd, {
+      exec(runCmd, {
         timeout: MAX_EXECUTION_TIME,
         maxBuffer: MAX_OUTPUT_SIZE,
         env: { ...process.env },
@@ -57,9 +118,8 @@ async function executeCode(language: string, code: string, stdin: string): Promi
         const executionTime = Date.now() - startTime;
         const timedOut = error?.killed === true;
 
-        // Cleanup temp files (best effort)
-        unlink(filePath).catch(() => {});
-        unlink(stdinPath).catch(() => {});
+        // Async cleanup of the isolated directory
+        execPromise(`rm -rf "${tempDir}"`).catch(() => {});
 
         resolve({
           stdout: (stdout || '').trimEnd().substring(0, MAX_OUTPUT_SIZE),
@@ -71,9 +131,14 @@ async function executeCode(language: string, code: string, stdin: string): Promi
       });
     });
   } catch (err) {
-    unlink(filePath).catch(() => {});
-    unlink(stdinPath).catch(() => {});
-    return { stdout: '', stderr: `Failed to execute: ${(err as Error).message}`, exitCode: 1, executionTime: 0, timedOut: false };
+    execPromise(`rm -rf "${tempDir}"`).catch(() => {});
+    return {
+      stdout: '',
+      stderr: `Failed to execute: ${(err as Error).message}`,
+      exitCode: 1,
+      executionTime: 0,
+      timedOut: false,
+    };
   }
 }
 

@@ -71,6 +71,37 @@ export default function CreateAssessmentPage() {
 
   const [loadingMessage, setLoadingMessage] = useState('');
 
+  // Step 1 - Question building tab state
+  const [questionTab, setQuestionTab] = useState<'prompt' | 'manual' | 'bulk'>('prompt');
+
+  // Manual Question Creator State
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualType, setManualType] = useState<'CODING' | 'MCQ'>('CODING');
+  const [manualDifficulty, setManualDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
+  const [manualDescription, setManualDescription] = useState('');
+  const [manualTags, setManualTags] = useState('');
+  // MCQ specific
+  const [manualOptions, setManualOptions] = useState<string[]>(['', '', '', '']);
+  const [manualCorrectAnswer, setManualCorrectAnswer] = useState('A');
+  const [manualExplanation, setManualExplanation] = useState('');
+  // Coding specific
+  const [manualConstraints, setManualConstraints] = useState('');
+  const [manualExamples, setManualExamples] = useState('');
+  const [manualTestCases, setManualTestCases] = useState<Array<{
+    input: string;
+    expectedOutput: string;
+    explanation?: string;
+    isHidden: boolean;
+    isSample: boolean;
+  }>>([{ input: '', expectedOutput: '', isHidden: false, isSample: true }]);
+
+  // AI Bulk-Paste Parser State
+  const [bulkText, setBulkText] = useState('');
+  const [isParsingBulk, setIsParsingBulk] = useState(false);
+
+  // Proctoring Settings State
+  const [proctoringLevel, setProctoringLevel] = useState<'NONE' | 'STANDARD' | 'LOCKDOWN'>('NONE');
+
   // Import Drawer State
   const [isImportDrawerOpen, setIsImportDrawerOpen] = useState(false);
   const [bankQuestions, setBankQuestions] = useState<any[]>([]);
@@ -232,6 +263,107 @@ export default function CreateAssessmentPage() {
     }
   };
 
+  // Add manual question
+  const handleAddManualQuestion = () => {
+    if (!manualTitle.trim()) {
+      toast.error('Question title is required.');
+      return;
+    }
+    if (!manualDescription.trim()) {
+      toast.error('Question description is required.');
+      return;
+    }
+
+    let newQuestion: GeneratedQuestion;
+    if (manualType === 'MCQ') {
+      if (manualOptions.some(opt => !opt.trim())) {
+        toast.error('Please fill in all 4 MCQ options.');
+        return;
+      }
+      newQuestion = {
+        title: manualTitle.trim(),
+        type: 'MCQ',
+        difficulty: manualDifficulty,
+        tags: manualTags.split(',').map(t => t.trim()).filter(Boolean),
+        description: manualDescription.trim(),
+        options: [...manualOptions],
+        correctAnswer: manualCorrectAnswer,
+        explanation: manualExplanation.trim()
+      };
+    } else {
+      const validTestCases = manualTestCases.filter(tc => tc.input.trim() || tc.expectedOutput.trim());
+      if (validTestCases.length === 0) {
+        toast.error('Please add at least one test case for the coding question.');
+        return;
+      }
+      newQuestion = {
+        title: manualTitle.trim(),
+        type: 'CODING',
+        difficulty: manualDifficulty,
+        tags: manualTags.split(',').map(t => t.trim()).filter(Boolean),
+        description: manualDescription.trim(),
+        constraints: manualConstraints.split('\n').map(c => c.trim()).filter(Boolean),
+        examples: manualExamples.split('\n').map(e => e.trim()).filter(Boolean),
+        testCases: validTestCases.map(tc => ({
+          input: tc.input.trim(),
+          expectedOutput: tc.expectedOutput.trim(),
+          isHidden: tc.isHidden,
+          isSample: tc.isSample
+        }))
+      };
+    }
+
+    setQuestions([...questions, newQuestion]);
+    toast.success('Manual question added successfully! 🎉');
+    
+    // Reset form
+    setManualTitle('');
+    setManualDescription('');
+    setManualTags('');
+    setManualOptions(['', '', '', '']);
+    setManualCorrectAnswer('A');
+    setManualExplanation('');
+    setManualConstraints('');
+    setManualExamples('');
+    setManualTestCases([{ input: '', expectedOutput: '', isHidden: false, isSample: true }]);
+  };
+
+  // AI Bulk-Paste Parser Handler
+  const handleParseBulk = async () => {
+    if (!bulkText.trim()) {
+      toast.error('Please paste some text to parse.');
+      return;
+    }
+    setIsParsingBulk(true);
+    toast.loading('Gemini is parsing and structuring your questions...', { id: 'bulk-parse' });
+    try {
+      const res = await fetch('/api/v1/questions/parse-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: bulkText })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to parse questions.');
+      }
+      
+      const parsedQuestions: GeneratedQuestion[] = data.data;
+      if (!parsedQuestions || parsedQuestions.length === 0) {
+        throw new Error('No questions could be parsed from the provided text.');
+      }
+      
+      setQuestions(prev => [...prev, ...parsedQuestions]);
+      toast.dismiss('bulk-parse');
+      toast.success(`Successfully parsed and imported ${parsedQuestions.length} questions! 🎉`);
+      setBulkText('');
+    } catch (err: any) {
+      toast.dismiss('bulk-parse');
+      toast.error(err.message || 'Error parsing bulk questions.');
+    } finally {
+      setIsParsingBulk(false);
+    }
+  };
+
   // Delete question
   const handleDeleteQuestion = (index: number) => {
     const updated = questions.filter((_, idx) => idx !== index);
@@ -337,7 +469,10 @@ export default function CreateAssessmentPage() {
         passingMarks,
         isPublic,
         allowedLanguages: assessmentType === 'APTITUDE' ? undefined : allowedLanguages.map(lang => lang.toUpperCase()),
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: [
+          ...tags.split(',').map(t => t.trim()).filter(Boolean),
+          `PROCTOR:${proctoringLevel}`
+        ],
         instructions: `Welcome to the ${title} exam. This is a secure assessment carries ${totalMarks} marks with ${questions.length} questions. Correct answers award 4 points. Good luck!`,
         questions: createdQuestionIds.map((qid, idx) => ({
           questionId: qid,
@@ -528,49 +663,361 @@ export default function CreateAssessmentPage() {
                   </div>
                 </div>
 
-                {/* Prompter */}
-                <div className="bg-[#161b22]/50 p-5 rounded-xl border border-[#30363d] space-y-4">
-                  <div className="flex items-center gap-1 text-xs text-[#8b949e] font-semibold">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Enter the specific technical topic or algorithmic puzzle title:
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input 
-                      type="text" 
-                      value={aiTopic}
-                      onChange={(e) => setAiTopic(e.target.value)}
-                      placeholder="e.g. Reverse a LinkedList, SQL Nth Highest Salary, React Closures"
-                      className="input-neon flex-1 text-sm"
-                      disabled={isGenerating}
-                    />
-                    <select
-                      value={aiType}
-                      onChange={(e) => setAiType(e.target.value as any)}
-                      className="input-neon bg-[#0d1117] text-xs font-semibold text-white px-3"
-                      disabled={isGenerating}
-                    >
-                      <option value="CODING">Coding Problem</option>
-                      <option value="MCQ">Technical MCQ</option>
-                    </select>
-                  </div>
-                  <button 
-                    onClick={handleAIGenerate}
-                    disabled={isGenerating}
-                    className="w-full btn-neon btn-neon-primary text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-50"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                        {loadingMessage}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 text-white" />
-                        Auto-Generate complete structure with AI
-                      </>
-                    )}
-                  </button>
+                {/* Mode Tabs */}
+                <div className="flex gap-2 p-1 bg-[#0d1117] rounded-lg border border-[#21262d]">
+                  {[
+                    { id: 'prompt', name: 'AI Topic Generator', icon: Sparkles },
+                    { id: 'manual', name: 'Manual Question Creator', icon: Plus },
+                    { id: 'bulk', name: 'AI Bulk-Paste Parser', icon: ListTodo }
+                  ].map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setQuestionTab(t.id as any)}
+                        type="button"
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                          questionTab === t.id
+                            ? 'bg-gradient-to-r from-[#0066ff] to-[#7c3aed] text-white shadow-md'
+                            : 'text-[#8b949e] hover:text-white hover:bg-[#161b22]/50'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {t.name}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* AI Prompter Tab */}
+                {questionTab === 'prompt' && (
+                  <div className="bg-[#161b22]/50 p-5 rounded-xl border border-[#30363d] space-y-4">
+                    <div className="flex items-center gap-1 text-xs text-[#8b949e] font-semibold">
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      Enter the specific technical topic or algorithmic puzzle title:
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input 
+                        type="text" 
+                        value={aiTopic}
+                        onChange={(e) => setAiTopic(e.target.value)}
+                        placeholder="e.g. Reverse a LinkedList, SQL Nth Highest Salary, React Closures"
+                        className="input-neon flex-1 text-sm"
+                        disabled={isGenerating}
+                      />
+                      <select
+                        value={aiType}
+                        onChange={(e) => setAiType(e.target.value as any)}
+                        className="input-neon bg-[#0d1117] text-xs font-semibold text-white px-3"
+                        disabled={isGenerating}
+                      >
+                        <option value="CODING">Coding Problem</option>
+                        <option value="MCQ">Technical MCQ</option>
+                      </select>
+                    </div>
+                    <button 
+                      onClick={handleAIGenerate}
+                      disabled={isGenerating}
+                      type="button"
+                      className="w-full btn-neon btn-neon-primary text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-50 cursor-pointer"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                          {loadingMessage}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 text-white" />
+                          Auto-Generate complete structure with AI
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Manual Question Creator Tab */}
+                {questionTab === 'manual' && (
+                  <div className="bg-[#161b22]/50 p-5 rounded-xl border border-[#30363d] space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Question Title</label>
+                        <input
+                          type="text"
+                          value={manualTitle}
+                          onChange={(e) => setManualTitle(e.target.value)}
+                          placeholder="e.g. Implement Queue using Stack"
+                          className="input-neon w-full text-xs"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Question Type</label>
+                          <select
+                            value={manualType}
+                            onChange={(e) => setManualType(e.target.value as any)}
+                            className="input-neon w-full text-xs font-semibold text-white px-2 cursor-pointer"
+                          >
+                            <option value="CODING">Coding Problem</option>
+                            <option value="MCQ">Technical MCQ</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Difficulty</label>
+                          <select
+                            value={manualDifficulty}
+                            onChange={(e) => setManualDifficulty(e.target.value as any)}
+                            className="input-neon w-full text-xs font-semibold text-white px-2 cursor-pointer"
+                          >
+                            <option value="EASY">Easy</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HARD">Hard</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Tags (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={manualTags}
+                        onChange={(e) => setManualTags(e.target.value)}
+                        placeholder="react, algorithm, recursion"
+                        className="input-neon w-full text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Description (Markdown Supported)</label>
+                      <textarea
+                        rows={4}
+                        value={manualDescription}
+                        onChange={(e) => setManualDescription(e.target.value)}
+                        placeholder="Write a clear statement of the question..."
+                        className="input-neon w-full text-xs font-sans resize-none"
+                      />
+                    </div>
+
+                    {/* MCQ Config */}
+                    {manualType === 'MCQ' ? (
+                      <div className="space-y-3 pt-2 border-t border-[#21262d]">
+                        <label className="block text-xs font-semibold text-[#c9d1d9]">MCQ Options and Correct Answer:</label>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          {manualOptions.map((opt, oIdx) => {
+                            const label = String.fromCharCode(65 + oIdx);
+                            return (
+                              <div key={oIdx} className="flex items-center gap-2 bg-[#0d1117] p-2 rounded-lg border border-[#21262d]">
+                                <span className="font-bold text-[#8b949e] text-xs">{label}</span>
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={(e) => {
+                                    const updated = [...manualOptions];
+                                    updated[oIdx] = e.target.value;
+                                    setManualOptions(updated);
+                                  }}
+                                  placeholder={`Option ${label}`}
+                                  className="bg-transparent border-none text-white text-xs outline-none flex-1"
+                                />
+                                <input
+                                  type="radio"
+                                  name="manual-correct"
+                                  checked={manualCorrectAnswer === label}
+                                  onChange={() => setManualCorrectAnswer(label)}
+                                  className="w-3.5 h-3.5 cursor-pointer accent-[#0066ff]"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Technical Explanation</label>
+                          <textarea
+                            rows={2}
+                            value={manualExplanation}
+                            onChange={(e) => setManualExplanation(e.target.value)}
+                            placeholder="Why is this option correct?"
+                            className="input-neon w-full text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Coding Config */
+                      <div className="space-y-4 pt-2 border-t border-[#21262d]">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Constraints (one per line)</label>
+                            <textarea
+                              rows={3}
+                              value={manualConstraints}
+                              onChange={(e) => setManualConstraints(e.target.value)}
+                              placeholder="e.g. 1 <= N <= 10^5&#10;Time Complexity: O(N)"
+                              className="input-neon w-full text-xs font-mono resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-[#c9d1d9] mb-1.5">Examples (one per line)</label>
+                            <textarea
+                              rows={3}
+                              value={manualExamples}
+                              onChange={(e) => setManualExamples(e.target.value)}
+                              placeholder="e.g. Input: nums = [2,7], target = 9 | Output: [0,1]"
+                              className="input-neon w-full text-xs font-mono resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold text-[#c9d1d9]">Test Cases ({manualTestCases.length}):</label>
+                            <button
+                              onClick={() => setManualTestCases([...manualTestCases, { input: '', expectedOutput: '', isHidden: false, isSample: false }])}
+                              type="button"
+                              className="text-[10px] text-[#58a6ff] border border-[#21262d] px-2 py-0.5 rounded hover:bg-[#21262d] font-semibold cursor-pointer"
+                            >
+                              + Add Test Case
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                            {manualTestCases.map((tc, tcIdx) => (
+                              <div key={tcIdx} className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-2 relative">
+                                {manualTestCases.length > 1 && (
+                                  <button
+                                    onClick={() => setManualTestCases(manualTestCases.filter((_, tIdx) => tIdx !== tcIdx))}
+                                    type="button"
+                                    className="absolute top-2 right-2 text-[#8b949e] hover:text-[#ef4444] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                  <div>
+                                    <span className="text-[#8b949e] font-semibold block mb-0.5">Input:</span>
+                                    <input
+                                      type="text"
+                                      value={tc.input}
+                                      onChange={(e) => {
+                                        const updated = [...manualTestCases];
+                                        updated[tcIdx].input = e.target.value;
+                                        setManualTestCases(updated);
+                                      }}
+                                      placeholder="e.g. 5"
+                                      className="bg-[#161b22] border border-[#21262d] text-white rounded px-2 py-1 w-full font-mono text-[10px]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <span className="text-[#8b949e] font-semibold block mb-0.5">Expected Output:</span>
+                                    <input
+                                      type="text"
+                                      value={tc.expectedOutput}
+                                      onChange={(e) => {
+                                        const updated = [...manualTestCases];
+                                        updated[tcIdx].expectedOutput = e.target.value;
+                                        setManualTestCases(updated);
+                                      }}
+                                      placeholder="e.g. 25"
+                                      className="bg-[#161b22] border border-[#21262d] text-white rounded px-2 py-1 w-full font-mono text-[10px]"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4 pt-1">
+                                  <label className="flex items-center gap-1 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={tc.isSample}
+                                      onChange={(e) => {
+                                        const updated = [...manualTestCases];
+                                        updated[tcIdx].isSample = e.target.checked;
+                                        if (e.target.checked) updated[tcIdx].isHidden = false;
+                                        setManualTestCases(updated);
+                                      }}
+                                      className="rounded bg-[#161b22] border-[#21262d]"
+                                    />
+                                    <span className="text-[10px] text-[#8b949e]">Is Sample Case</span>
+                                  </label>
+                                  <label className="flex items-center gap-1 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={tc.isHidden}
+                                      onChange={(e) => {
+                                        const updated = [...manualTestCases];
+                                        updated[tcIdx].isHidden = e.target.checked;
+                                        if (e.target.checked) updated[tcIdx].isSample = false;
+                                        setManualTestCases(updated);
+                                      }}
+                                      className="rounded bg-[#161b22] border-[#21262d]"
+                                    />
+                                    <span className="text-[10px] text-[#8b949e]">Is Hidden Case</span>
+                                  </label>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleAddManualQuestion}
+                      type="button"
+                      className="w-full btn-neon btn-neon-primary text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(0,102,255,0.4)] cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-white" />
+                      Add Manual Question to Assessment
+                    </button>
+                  </div>
+                )}
+
+                {/* AI Bulk-Paste Parser Tab */}
+                {questionTab === 'bulk' && (
+                  <div className="bg-[#161b22]/50 p-5 rounded-xl border border-[#30363d] space-y-4">
+                    <div className="flex items-center gap-1 text-xs text-[#8b949e] font-semibold">
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      Paste raw, unstructured assessment questions, descriptions, or exam text below. Gemini will parse MCQs and Coding problems automatically:
+                    </div>
+                    <div>
+                      <textarea
+                        rows={10}
+                        value={bulkText}
+                        onChange={(e) => setBulkText(e.target.value)}
+                        placeholder={`e.g.
+1. What is the output of console.log(typeof null)?
+A. "object"
+B. "null"
+C. "undefined"
+D. "number"
+Answer: A
+
+2. Coding problem: Write a function to check if a number is prime.
+Input: 7 -> Output: true
+Input: 4 -> Output: false
+`}
+                        className="input-neon w-full text-xs font-mono resize-none leading-relaxed"
+                        disabled={isParsingBulk}
+                      />
+                    </div>
+                    <button
+                      onClick={handleParseBulk}
+                      disabled={isParsingBulk}
+                      type="button"
+                      className="w-full btn-neon btn-neon-primary text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-50 cursor-pointer"
+                    >
+                      {isParsingBulk ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                          Gemini is parsing your raw text...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 text-white" />
+                          Parse and Import with Gemini AI
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
 
                 {/* AI Review Workspace / In-Place Editors */}
                 {questions.length > 0 && (
@@ -837,20 +1284,18 @@ export default function CreateAssessmentPage() {
                       {[
                         { id: 'python', name: 'Python' },
                         { id: 'javascript', name: 'JavaScript' },
-                        { id: 'java', name: 'Java (Coming soon)', disabled: true },
-                        { id: 'cpp', name: 'C++ (Coming soon)', disabled: true }
+                        { id: 'java', name: 'Java' },
+                        { id: 'cpp', name: 'C++' }
                       ].map((lang) => (
                         <label 
                           key={lang.id} 
                           className={`flex items-center justify-between px-4 py-3 rounded-xl bg-[#161b22]/50 border transition-all cursor-pointer ${
-                            lang.disabled ? 'opacity-40 cursor-not-allowed border-[#21262d]' : 
                             allowedLanguages.includes(lang.id) ? 'border-[#0066ff] bg-[#0066ff]/5' : 'border-[#21262d] hover:border-[#30363d]'
                           }`}
                         >
                           <span className="text-sm text-white font-medium">{lang.name}</span>
                           <input 
                             type="checkbox" 
-                            disabled={lang.disabled}
                             checked={allowedLanguages.includes(lang.id)}
                             onChange={() => {
                               if (allowedLanguages.includes(lang.id)) {
@@ -888,6 +1333,54 @@ export default function CreateAssessmentPage() {
                       <option value="public">Public (Visible to All Candidates)</option>
                       <option value="private">Private (Invite Only via Code)</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-3 border-t border-[#21262d]">
+                  <div>
+                    <label className="block text-sm font-semibold text-[#c9d1d9] mb-1.5">Proctoring Enforcement Level</label>
+                    <select 
+                      value={proctoringLevel} 
+                      onChange={(e) => {
+                        const lvl = e.target.value as 'NONE' | 'STANDARD' | 'LOCKDOWN';
+                        setProctoringLevel(lvl);
+                        if (lvl === 'NONE') {
+                          setProctoringSettings({
+                            aiProctoring: false,
+                            antiCopyPaste: false,
+                            browserLockdown: false,
+                            randomizeQuestions: proctoringSettings.randomizeQuestions,
+                            showScoreImmediately: proctoringSettings.showScoreImmediately
+                          });
+                        } else if (lvl === 'STANDARD') {
+                          setProctoringSettings({
+                            aiProctoring: true,
+                            antiCopyPaste: true,
+                            browserLockdown: false,
+                            randomizeQuestions: proctoringSettings.randomizeQuestions,
+                            showScoreImmediately: proctoringSettings.showScoreImmediately
+                          });
+                        } else if (lvl === 'LOCKDOWN') {
+                          setProctoringSettings({
+                            aiProctoring: true,
+                            antiCopyPaste: true,
+                            browserLockdown: true,
+                            randomizeQuestions: proctoringSettings.randomizeQuestions,
+                            showScoreImmediately: proctoringSettings.showScoreImmediately
+                          });
+                        }
+                      }} 
+                      className="input-neon w-full appearance-none cursor-pointer text-sm"
+                    >
+                      <option value="NONE">None (Self-Proctored / Open Environment)</option>
+                      <option value="STANDARD">Standard (WebRTC Camera Feed + Copy-Paste Locks)</option>
+                      <option value="LOCKDOWN">Lockdown (Camera Feed + Full Copy-Paste Block + Screen Lockdown Modal)</option>
+                    </select>
+                    <p className="text-xs text-[#8b949e] mt-1.5 leading-relaxed">
+                      {proctoringLevel === 'NONE' && "Candidates have standard freedom. Recommended for take-home or low-stakes quizzes."}
+                      {proctoringLevel === 'STANDARD' && "Enables live front-facing WebRTC monitoring and intercepts clipboard / copy-paste operations."}
+                      {proctoringLevel === 'LOCKDOWN' && "Full screen lockdown is strictly enforced. Attempting to minimize, change tabs, or exit full screen completely locks candidate workspace until full screen is restored, and auto-deducts integrity score."}
+                    </p>
                   </div>
                 </div>
 
@@ -962,6 +1455,10 @@ export default function CreateAssessmentPage() {
                   <div>
                     <span className="text-[10px] text-[#8b949e] uppercase font-bold tracking-wider">Pass Criteria</span>
                     <p className="text-sm font-semibold text-white">{passPercentage}% (Passing: {Math.ceil((questions.length * 4 * passPercentage) / 100)} pts)</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#8b949e] uppercase font-bold tracking-wider">Proctoring Level</span>
+                    <p className="text-sm font-semibold text-white capitalize">{proctoringLevel.toLowerCase()}</p>
                   </div>
                 </div>
               </motion.div>
