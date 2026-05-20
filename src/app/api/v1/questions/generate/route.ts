@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const { title, type = 'CODING' } = await req.json();
 
     if (!title) {
-      return errorResponse(new Error('Title is required'), 400);
+      return errorResponse(new Error('Title/Topic is required'), 400);
     }
 
     // Try multiple models - adjusted for 2026 model availability
@@ -22,35 +22,64 @@ export async function POST(req: NextRequest) {
     for (const modelName of modelsToTry) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
-        const prompt = `
-          You are an expert competitive programming coach and technical interviewer.
-          Generate a comprehensive coding problem based on the title: "${title}".
-          
-          Return ONLY a JSON object with the following structure:
-          {
-            "description": "Clear and concise problem statement in Markdown. Include sections like # Problem, # Examples (at least 2), and # Constraints.",
-            "difficulty": "EASY" | "MEDIUM" | "HARD",
-            "tags": ["tag1", "tag2"],
-            "constraints": ["constraint 1", "constraint 2"],
-            "timeLimit": 2000,
-            "memoryLimit": 256,
-            "testCases": [
-              {
-                "input": "string representation of input",
-                "expectedOutput": "string representation of output",
-                "explanation": "brief explanation of why this input results in this output",
-                "isHidden": boolean,
-                "isSample": boolean
-              }
-            ]
-          }
-          
-          Requirements for Test Cases:
-          - Provide at least 5 test cases.
-          - 2 should be sample test cases (isSample: true).
-          - 3 should be hidden test cases (isHidden: true).
-          - Ensure test cases cover edge cases.
-        `;
+        let prompt = '';
+
+        if (type === 'MCQ') {
+          prompt = `
+            You are an expert technical interviewer and technical writer.
+            Generate a rigorous, high-quality technical multiple-choice question (MCQ) based on the topic: "${title}".
+            
+            Return ONLY a JSON object with the following structure:
+            {
+              "description": "Clear and detailed technical question text or code snippet to analyze. Use Markdown formatting where appropriate.",
+              "difficulty": "EASY" | "MEDIUM" | "HARD",
+              "tags": ["tag1", "tag2"],
+              "options": [
+                "Option A text",
+                "Option B text",
+                "Option C text",
+                "Option D text"
+              ],
+              "correctAnswer": "A" | "B" | "C" | "D",
+              "explanation": "Detailed explanation of why this answer is correct and why other options are incorrect."
+            }
+            
+            Requirements for MCQ:
+            - Make the options challenging, plausible, and technically sound (avoid simple true/false or obvious distractors).
+            - Suggested tags should be from standard conceptual topics (e.g., Arrays, Strings, SQL, Recursion, Closures, AI, Database, OOP, etc.).
+            - Ensure difficulty matches technical standards.
+          `;
+        } else {
+          prompt = `
+            You are an expert competitive programming coach and technical interviewer.
+            Generate a comprehensive coding problem based on the title/topic: "${title}".
+            
+            Return ONLY a JSON object with the following structure:
+            {
+              "description": "Clear and concise problem statement in Markdown. Include sections like # Problem, # Examples (at least 2), and # Constraints.",
+              "difficulty": "EASY" | "MEDIUM" | "HARD",
+              "tags": ["tag1", "tag2"],
+              "constraints": ["constraint 1", "constraint 2"],
+              "timeLimit": 2000,
+              "memoryLimit": 256,
+              "testCases": [
+                {
+                  "input": "string representation of input",
+                  "expectedOutput": "string representation of output",
+                  "explanation": "brief explanation of why this input results in this output",
+                  "isHidden": boolean,
+                  "isSample": boolean
+                }
+              ]
+            }
+            
+            Requirements for Test Cases:
+            - Provide at least 5 test cases.
+            - 2 should be sample test cases (isSample: true).
+            - 3 should be hidden test cases (isHidden: true).
+            - Ensure test cases cover edge cases.
+          `;
+        }
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -76,3 +105,4 @@ export async function POST(req: NextRequest) {
     return errorResponse(new Error(message), 500);
   }
 }
+

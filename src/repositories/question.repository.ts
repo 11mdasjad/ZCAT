@@ -1,9 +1,10 @@
-import { Prisma, Question, Difficulty } from '@prisma/client';
+import { Prisma, Question, Difficulty, QuestionType } from '@prisma/client';
 import { BaseRepository } from './base.repository';
 import prisma from '@/lib/prisma/client';
 
 export interface QuestionFilters {
   difficulty?: Difficulty;
+  type?: QuestionType;
   tags?: string[];
   search?: string;
   isActive?: boolean;
@@ -39,6 +40,11 @@ export class QuestionRepository extends BaseRepository<Question, Prisma.Question
     // Filter by difficulty
     if (filters.difficulty) {
       where.difficulty = filters.difficulty;
+    }
+
+    // Filter by type
+    if (filters.type) {
+      where.type = filters.type;
     }
 
     // Filter by tags (array contains any of the provided tags)

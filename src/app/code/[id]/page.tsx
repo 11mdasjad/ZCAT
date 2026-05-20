@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
@@ -9,7 +9,7 @@ import {
   FlaskConical, ListChecks,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import ZCATLoader from '@/components/shared/ZCATLoader';
 import { getQuestionById, type LocalQuestion } from '@/lib/data/questions-data';
 import { parseTestCases, generateStub, formatInputAsStdin, normalizeOutput, type TestCase, type TestResult } from '@/lib/utils/test-case-parser';
@@ -30,9 +30,57 @@ async function executeCode(language: string, code: string, stdin: string): Promi
   }
 }
 
-export default function CodingExamPage() {
+function CodingExamPageContent() {
   const params = useParams();
   const questionId = params.id as string;
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get('assessmentId');
+  const router = useRouter();
+
+  const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
+  const [assessmentLoaded, setAssessmentLoaded] = useState(!assessmentId);
+  const [totalDuration, setTotalDuration] = useState(7200); // in seconds
+  const [timeLeft, setTimeLeft] = useState(7200);
+
+  // Fetch assessment questions if taking an assessment
+  useEffect(() => {
+    async function fetchAssessmentDetails() {
+      if (!assessmentId) {
+        setAssessmentLoaded(true);
+        return;
+      }
+      try {
+        setAssessmentLoaded(false);
+        const res = await fetch(`/api/v1/assessments/${assessmentId}`);
+        const data = await res.json();
+        if (data.success && data.data?.questions) {
+          setAssessmentQuestions(data.data.questions);
+          if (data.data.duration) {
+            setTimeLeft(data.data.duration * 60);
+            setTotalDuration(data.data.duration * 60);
+          }
+          
+          // Question restriction validation
+          const questionExists = data.data.questions.some((q: any) => q.id === questionId);
+          if (!questionExists && data.data.questions.length > 0) {
+            toast.error('Access denied: This question is not part of the active assessment.');
+            const firstQId = data.data.questions[0].id;
+            router.push(`/code/${firstQId}?assessmentId=${assessmentId}`);
+            return;
+          }
+          setAssessmentLoaded(true);
+        } else {
+          toast.error('Failed to load assessment details.');
+          router.push('/candidate/tests');
+        }
+      } catch (err) {
+        console.error('Failed to fetch assessment questions:', err);
+        toast.error('Error loading assessment.');
+        router.push('/candidate/tests');
+      }
+    }
+    fetchAssessmentDetails();
+  }, [assessmentId, questionId, router]);
 
   const [question, setQuestion] = useState<LocalQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +90,6 @@ export default function CodingExamPage() {
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(7200);
   const [activeLeftTab, setActiveLeftTab] = useState<'description' | 'submissions'>('description');
   const [activeBottomTab, setActiveBottomTab] = useState<'testcases' | 'result'>('testcases');
   const [selectedTestCase, setSelectedTestCase] = useState(0);
@@ -87,8 +134,23 @@ export default function CodingExamPage() {
     if (questionId) fetchQuestion();
   }, [questionId]);
 
-  // Timer
-  useEffect(() => { const t = setInterval(() => setTimeLeft(v => Math.max(0, v - 1)), 1000); return () => clearInterval(t); }, []);
+  // Timer countdown
+  useEffect(() => {
+    const t = setInterval(() => {
+      setTimeLeft(v => {
+        if (v <= 1) {
+          clearInterval(t);
+          if (assessmentId && v === 1) {
+            toast.error("Time's up! Your assessment session has ended.", { duration: 5000 });
+            router.push('/candidate/tests');
+          }
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [assessmentId, router]);
   const formatTime = (s: number) => { const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); const sec = s%60; return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; };
 
   const handleLanguageChange = (lang: string) => {
@@ -175,21 +237,45 @@ export default function CodingExamPage() {
       }
     }
 
-    if (passedCount === results.length) toast.success('All test cases passed! 🎉');
-    else toast.error(`${passedCount}/${results.length} test cases passed`);
+    if (passedCount === results.length) {
+      toast.success('All test cases passed! 🎉');
+      if (assessmentId) {
+        try {
+          const timeTaken = totalDuration - timeLeft;
+          const res = await fetch(`/api/v1/leaderboards/${assessmentId}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              questionId,
+              timeTaken: Math.max(1, timeTaken),
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast.success('Leaderboard updated! +4 points awarded! 🏆');
+          } else {
+            console.error('Failed to update leaderboard:', data.error);
+          }
+        } catch (err) {
+          console.error('Error submitting to leaderboard:', err);
+        }
+      }
+    } else {
+      toast.error(`${passedCount}/${results.length} test cases passed`);
+    }
 
     setIsSubmitting(false);
-  }, [code, language, isRunning, isSubmitting, testCases]);
+  }, [code, language, isRunning, isSubmitting, testCases, assessmentId, questionId, totalDuration, timeLeft]);
 
   const timeColor = timeLeft < 300 ? 'text-[#ef4444]' : timeLeft < 600 ? 'text-[#f59e0b]' : 'text-[#10b981]';
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center bg-[#06080f]"><ZCATLoader message="Loading question..." /></div>;
+  if (isLoading || !assessmentLoaded) return <div className="h-screen flex items-center justify-center bg-[#06080f]"><ZCATLoader message="Loading question..." /></div>;
   if (error || !question) return (
     <div className="h-screen flex items-center justify-center bg-[#06080f]"><div className="text-center">
       <AlertTriangle className="w-12 h-12 text-[#ef4444] mx-auto mb-3" />
       <h2 className="text-lg font-bold text-white mb-2">Failed to Load Question</h2>
       <p className="text-sm text-[#8b949e] mb-4">{error || 'Question not found'}</p>
-      <Link href="/candidate/challenges" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0066ff] text-white text-sm font-medium hover:bg-[#0052cc] transition-colors"><ArrowLeft className="w-4 h-4" /> Back to Challenges</Link>
+      <Link href={assessmentId ? "/candidate/tests" : "/candidate/challenges"} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0066ff] text-white text-sm font-medium hover:bg-[#0052cc] transition-colors"><ArrowLeft className="w-4 h-4" /> {assessmentId ? 'Back to Assessments' : 'Back to Challenges'}</Link>
     </div></div>
   );
 
@@ -200,7 +286,7 @@ export default function CodingExamPage() {
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#21262d] bg-[#0d1117]/90 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Link href="/candidate/challenges" className="p-1.5 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all"><ArrowLeft className="w-4 h-4" /></Link>
+          <Link href={assessmentId ? "/candidate/tests" : "/candidate/challenges"} className="p-1.5 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all"><ArrowLeft className="w-4 h-4" /></Link>
           <div className="w-px h-6 bg-[#21262d]" />
           <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-[#00d4ff]" /><span className="text-sm font-semibold text-white">{question.title}</span></div>
           <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColor}`}>{question.difficulty.toLowerCase()}</span>
@@ -232,6 +318,34 @@ export default function CodingExamPage() {
           <div className="flex-1 overflow-y-auto p-5">
             {activeLeftTab === 'description' ? (
               <div className="space-y-5">
+                {assessmentQuestions.length > 1 && (
+                  <div className="bg-[#161b22]/50 border border-[#21262d] rounded-xl p-4 space-y-3">
+                    <p className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider text-center">Assessment Questions</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {assessmentQuestions.map((q, idx) => {
+                        const isCurrent = q.id === questionId;
+                        return (
+                          <Link
+                            key={q.id}
+                            href={`/code/${q.id}?assessmentId=${assessmentId}`}
+                            className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                              isCurrent
+                                ? 'bg-[#00d4ff]/10 border-[#00d4ff]/40 text-[#00d4ff]'
+                                : 'bg-[#0d1117] border-[#21262d] text-[#8b949e] hover:border-[#484f58] hover:text-white'
+                            }`}
+                          >
+                            <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                              isCurrent ? 'bg-[#00d4ff]/20 text-[#00d4ff]' : 'bg-[#161b22] text-[#8b949e]'
+                            }`}>
+                              {idx + 1}
+                            </span>
+                            <span className="truncate">{q.title}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <h2 className="text-lg font-bold text-white mb-3">{question.title}</h2>
                   <div className="text-sm text-[#8b949e] leading-relaxed whitespace-pre-wrap">{question.description}</div>
@@ -352,5 +466,13 @@ export default function CodingExamPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CodingExamPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[#06080f]"><ZCATLoader message="Loading workspace..." /></div>}>
+      <CodingExamPageContent />
+    </Suspense>
   );
 }

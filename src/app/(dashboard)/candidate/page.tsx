@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -8,7 +8,6 @@ import {
   Zap, Target, TrendingUp, Award, Inbox,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/auth-store';
-import { getQuestions, getQuestionStats } from '@/lib/data/questions-data';
 import toast from 'react-hot-toast';
 
 const quickActions = [
@@ -20,8 +19,9 @@ const quickActions = [
 
 export default function CandidateDashboard() {
   const { user } = useAuthStore();
-  const stats = useMemo(() => getQuestionStats(), []);
-  const recentQuestions = useMemo(() => getQuestions({ limit: 3 }).questions, []);
+  
+  const [stats, setStats] = useState({ EASY: 0, MEDIUM: 0, HARD: 0, total: 0 });
+  const [recentQuestions, setRecentQuestions] = useState<any[]>([]);
 
   // Show error toast if redirected from admin panel due to unauthorized access
   useEffect(() => {
@@ -32,12 +32,45 @@ export default function CandidateDashboard() {
     }
   }, []);
 
-  const summaryCards = [
+  // Fetch stats and questions from database APIs
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const statsRes = await fetch('/api/v1/questions/stats');
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          if (statsData.success && statsData.data && statsData.data.stats) {
+            const s = { EASY: 0, MEDIUM: 0, HARD: 0, total: 0 };
+            statsData.data.stats.forEach((item: any) => {
+              if (item.difficulty === 'EASY') s.EASY = item.count;
+              if (item.difficulty === 'MEDIUM') s.MEDIUM = item.count;
+              if (item.difficulty === 'HARD') s.HARD = item.count;
+            });
+            s.total = s.EASY + s.MEDIUM + s.HARD;
+            setStats(s);
+          }
+        }
+
+        const questionsRes = await fetch('/api/v1/questions?limit=3');
+        if (questionsRes.ok) {
+          const questionsData = await questionsRes.json();
+          if (questionsData.success && questionsData.data) {
+            setRecentQuestions(questionsData.data.questions || []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      }
+    }
+    loadDashboardData();
+  }, []);
+
+  const summaryCards = useMemo(() => [
     { label: 'Available Questions', value: stats.total.toString(), change: `${stats.EASY} easy, ${stats.MEDIUM} medium`, icon: Target, color: '#00d4ff' },
     { label: 'Easy Questions', value: stats.EASY.toString(), change: 'Ready to practice', icon: TrendingUp, color: '#10b981' },
     { label: 'Medium Questions', value: stats.MEDIUM.toString(), change: 'Build your skills', icon: Trophy, color: '#f59e0b' },
     { label: 'Hard Questions', value: stats.HARD.toString(), change: 'Master level', icon: Award, color: '#a855f7' },
-  ];
+  ], [stats]);
 
   return (
     <div className="space-y-6">

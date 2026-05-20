@@ -10,13 +10,13 @@ import {
   Award, User, Brain, History, BookOpen,
   Users, PlusCircle, Database, Eye, LineChart,
   FileDown, Settings, Zap, ChevronLeft, LogOut,
-  Shield, HelpCircle, Megaphone,
+  Shield, HelpCircle, Megaphone, ClipboardList,
 } from 'lucide-react';
 
 const candidateLinks = [
   { href: '/candidate', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/candidate/challenges', icon: Code2, label: 'Coding Challenges' },
-  { href: '/candidate/tests', icon: FileText, label: 'Aptitude Tests' },
+  { href: '/candidate/tests', icon: FileText, label: 'Tests' },
   { href: '/candidate/history', icon: History, label: 'Test History' },
   { href: '/candidate/performance', icon: BarChart3, label: 'Performance' },
   { href: '/candidate/leaderboard', icon: Trophy, label: 'Leaderboard' },
@@ -27,10 +27,12 @@ const candidateLinks = [
 
 const adminLinks = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/admin/assessments', icon: ClipboardList, label: 'Test Management' },
   { href: '/admin/candidates', icon: Users, label: 'Candidates' },
   { href: '/admin/assessments/create', icon: PlusCircle, label: 'Create Assessment' },
   { href: '/admin/questions', icon: Database, label: 'Question Bank' },
   { href: '/admin/monitoring', icon: Eye, label: 'Live Monitoring' },
+  { href: '/admin/leaderboards', icon: Trophy, label: 'Leaderboards' },
   { href: '/admin/analytics', icon: LineChart, label: 'Analytics' },
   { href: '/admin/broadcast', icon: Megaphone, label: 'Broadcast Alerts' },
   { href: '/admin/reports', icon: FileDown, label: 'Reports' },

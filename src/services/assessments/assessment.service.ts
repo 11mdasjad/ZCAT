@@ -22,6 +22,7 @@ export class AssessmentService {
       title: data.title,
       description: data.description,
       type: data.type,
+      status: data.status || 'LIVE',
       duration: data.duration,
       totalMarks: data.totalMarks,
       passingMarks: data.passingMarks,
@@ -44,7 +45,33 @@ export class AssessmentService {
       createData.difficulty = data.difficulty;
     }
 
-    return assessmentRepository.create(createData);
+    const assessment = await assessmentRepository.create(createData);
+
+    if (data.questions && data.questions.length > 0) {
+      await assessmentRepository.addQuestions(assessment.id, data.questions);
+    }
+
+    return assessment;
+  }
+
+  /**
+   * Soft delete an assessment
+   */
+  async delete(id: string, userId: string, userRole: string) {
+    const assessment = await assessmentRepository.findById(id);
+    if (!assessment) {
+      throw new Error('Assessment not found');
+    }
+
+    // Creator, recruiters, and admins can delete
+    const isOwner = assessment.createdById === userId;
+    const isAdminOrRecruiter = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'RECRUITER';
+
+    if (!isOwner && !isAdminOrRecruiter) {
+      throw new Error('Unauthorized to delete this assessment');
+    }
+
+    return assessmentRepository.softDelete(id);
   }
 }
 

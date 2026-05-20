@@ -1,11 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Code2, Clock, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import ZCATLoader from '@/components/shared/ZCATLoader';
-import { getQuestions, getQuestionStats, type LocalQuestion } from '@/lib/data/questions-data';
+
+interface Question {
+  id: string;
+  title: string;
+  slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  description: string;
+  timeLimit: number;
+  tags: string[];
+}
 
 const difficultyColors = {
   EASY: { bg: 'bg-[#10b981]/10', text: 'text-[#10b981]', border: 'border-[#10b981]/20' },
@@ -19,7 +28,10 @@ export default function ChallengesPage() {
   const [filter, setFilter] = useState<'all' | 'EASY' | 'MEDIUM' | 'HARD'>('all');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const stats = useMemo(() => getQuestionStats(), []);
+  
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
+  const [stats, setStats] = useState({ EASY: 0, MEDIUM: 0, HARD: 0, total: 0 });
 
   // Debounced search
   useEffect(() => {
@@ -30,19 +42,54 @@ export default function ChallengesPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Simulate loading for initial render
+  // Load stats from the database API
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
+    fetch('/api/v1/questions/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data && data.data.stats) {
+          const s = { EASY: 0, MEDIUM: 0, HARD: 0, total: 0 };
+          data.data.stats.forEach((item: any) => {
+            if (item.difficulty === 'EASY') s.EASY = item.count;
+            if (item.difficulty === 'MEDIUM') s.MEDIUM = item.count;
+            if (item.difficulty === 'HARD') s.HARD = item.count;
+          });
+          s.total = s.EASY + s.MEDIUM + s.HARD;
+          setStats(s);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch statistics:', err));
   }, []);
 
-  const { questions, pagination } = useMemo(() => {
-    return getQuestions({
-      page,
-      limit: 20,
-      difficulty: filter !== 'all' ? filter : undefined,
-      search: search || undefined,
-    });
+  // Load questions from the database API
+  useEffect(() => {
+    async function loadQuestions() {
+      setIsLoading(true);
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.set('page', page.toString());
+        queryParams.set('limit', '20');
+        if (filter !== 'all') {
+          queryParams.set('difficulty', filter);
+        }
+        if (search) {
+          queryParams.set('search', search);
+        }
+        const res = await fetch(`/api/v1/questions?${queryParams.toString()}`);
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setQuestions(resData.data.questions || []);
+            setPagination(resData.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch questions:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadQuestions();
   }, [page, filter, search]);
 
   const handleFilterChange = (newFilter: typeof filter) => {

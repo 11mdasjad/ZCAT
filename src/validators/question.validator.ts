@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Difficulty } from '@prisma/client';
+import { Difficulty, QuestionType } from '@prisma/client';
 
 /**
  * Query parameters for listing questions
@@ -8,6 +8,7 @@ export const questionListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   difficulty: z.nativeEnum(Difficulty).optional(),
+  type: z.nativeEnum(QuestionType).optional(),
   tags: z
     .string()
     .optional()

@@ -1,4 +1,4 @@
-import { Question, Difficulty } from '@prisma/client';
+import { Question, Difficulty, QuestionType } from '@prisma/client';
 import {
   questionRepository,
   QuestionFilters,
@@ -11,6 +11,7 @@ export interface QuestionListParams {
   page?: number;
   limit?: number;
   difficulty?: Difficulty;
+  type?: QuestionType;
   tags?: string[];
   search?: string;
 }
@@ -36,6 +37,7 @@ export class QuestionService {
 
       const filters: QuestionFilters = {
         difficulty: params.difficulty,
+        type: params.type,
         tags: params.tags,
         search: params.search,
         isActive: true,

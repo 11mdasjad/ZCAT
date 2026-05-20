@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       page: searchParams.get('page') ?? undefined,
       limit: searchParams.get('limit') ?? undefined,
       difficulty: searchParams.get('difficulty') ?? undefined,
+      type: searchParams.get('type') ?? undefined,
       tags: searchParams.get('tags') ?? undefined,
       search: searchParams.get('search') ?? undefined,
     });
