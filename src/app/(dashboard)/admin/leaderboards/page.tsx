@@ -30,6 +30,7 @@ interface RankedEntry {
     name: string;
     email: string;
     avatarUrl: string | null;
+    sessions?: { integrityScore: number }[];
   };
 }
 
@@ -452,7 +453,9 @@ export default function AdminLeaderboardManagementPage() {
                   </div>
                 ) : viewingEntries.length > 0 ? (
                   <div className="space-y-3">
-                    {viewingEntries.map((row) => (
+                    {viewingEntries.map((row) => {
+                      const integrityScore = row.user.sessions?.[0]?.integrityScore ?? 100;
+                      return (
                       <div
                         key={row.user.email}
                         className="glass-card p-4 rounded-xl flex items-center justify-between border border-[#21262d] hover:border-[#30363d] transition-colors"
@@ -473,7 +476,17 @@ export default function AdminLeaderboardManagementPage() {
                           </span>
                           <div>
                             <div className="text-sm font-semibold text-white">{row.user.name}</div>
-                            <div className="text-[10px] text-[#8b949e]">{row.user.email}</div>
+                            <div className="text-[10px] text-[#8b949e] flex items-center gap-2 mt-1">
+                              {row.user.email}
+                              <span className={`px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border ${
+                                integrityScore >= 90 ? 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20' : 
+                                integrityScore >= 70 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
+                                'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20'
+                              }`}>
+                                <Shield className="w-2.5 h-2.5" />
+                                {integrityScore}% Integrity
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -483,7 +496,8 @@ export default function AdminLeaderboardManagementPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="h-48 flex flex-col items-center justify-center text-center text-[#8b949e] gap-3">

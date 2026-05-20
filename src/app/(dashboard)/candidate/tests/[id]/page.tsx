@@ -9,7 +9,7 @@ import {
   Clock, Award, HelpCircle, ChevronRight, ChevronLeft, Send,
   Trophy, CheckCircle2, XCircle, AlertTriangle, ArrowRight,
   BookOpen, Sparkles, AlertCircle, RefreshCw, FileText,
-  Code2, Play, Terminal, Check, ShieldAlert, Laptop, ArrowUpRight, Trash2
+  Code2, Play, Terminal, Check, Shield, ShieldAlert, Laptop, ArrowUpRight, Trash2
 } from 'lucide-react';
 import ZCATLoader from '@/components/shared/ZCATLoader';
 import toast from 'react-hot-toast';
@@ -322,6 +322,7 @@ export default function MixedCandidateExamWorkspace() {
 
   // Final summary score calculation
   const [finalScore, setFinalScore] = useState(0);
+  const [integrityScore, setIntegrityScore] = useState<number | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -391,9 +392,6 @@ export default function MixedCandidateExamWorkspace() {
       setCodeAnswers(initialCodeAnswers);
       setSelectedLanguages(initialLanguages);
       setSubmissionHistory(initialHistory);
-
-      // Check if candidate already has submissions locked in DB
-      // We can also restore standard MCQ state if they had already answered
     }
   }, [assessment, assessmentId]);
 
@@ -807,7 +805,7 @@ export default function MixedCandidateExamWorkspace() {
   };
 
   // Finish exam
-  const finishAssessment = () => {
+  const finishAssessment = async () => {
     setIsFinishConfirmOpen(false);
     setIsCompleted(true);
 
@@ -825,6 +823,15 @@ export default function MixedCandidateExamWorkspace() {
     });
 
     setFinalScore(scoreCalculated);
+
+    try {
+      const res = await fetch(`/api/v1/assessments/${assessmentId}/session`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setIntegrityScore(data.data.integrityScore ?? 100);
+      }
+    } catch (err) {}
+
     toast.success('Assessment complete! Rankings compiled instantly. 🏆');
 
     // Wipe local backups to keep things tidy
@@ -946,6 +953,16 @@ export default function MixedCandidateExamWorkspace() {
                 <ShieldAlert className="w-4 h-4 text-[#ef4444]" /> Exam Rules & Guidelines:
               </h3>
               <ul className="space-y-2 text-xs text-[#8b949e] list-disc list-inside">
+                {isProctorLockdown && (
+                  <li className="text-[#ef4444] font-semibold">
+                    <strong className="text-white">FULL LOCKDOWN ENABLED:</strong> This exam requires Full-Screen Mode and an active Webcam feed. Exiting full-screen, switching tabs, or attempting to copy/paste will immediately reduce your Integrity Score.
+                  </li>
+                )}
+                {isProctorStandard && !isProctorLockdown && (
+                  <li className="text-yellow-500 font-semibold">
+                    <strong className="text-white">STANDARD PROCTORING:</strong> Webcam monitoring is active and tab switching is tracked. Copy-pasting is restricted. Maintain focus on the exam window.
+                  </li>
+                )}
                 <li>Every correctly submitted multiple choice response awards exactly <strong className="text-white">+4 points</strong> instantly to your score.</li>
                 <li>Coding questions must be solved inside the interactive Monaco Code Editor. You can run test cases using the compile console.</li>
                 <li>Each coding question has associated sample test cases. Submitting a correct answer awards <strong className="text-white">+4 points</strong> to your leaderboard standing.</li>
@@ -1013,9 +1030,14 @@ export default function MixedCandidateExamWorkspace() {
               <p className="text-2xl font-bold text-white mt-1">{accuracy}%</p>
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-[#21262d]">
-              <p className="text-xs text-[#8b949e]">Leaderboard Ranking</p>
-              <p className="text-2xl font-bold text-[#00d4ff] mt-1 flex items-center justify-center gap-1">
-                <Sparkles className="w-4 h-4 text-[#f59e0b]" /> Ranked Live
+              <p className="text-xs text-[#8b949e]">Integrity Score</p>
+              <p className={`text-2xl font-bold mt-1 flex items-center justify-center gap-1.5 ${
+                integrityScore !== null && integrityScore >= 90 ? 'text-[#10b981]' : 
+                integrityScore !== null && integrityScore >= 70 ? 'text-yellow-500' : 
+                'text-[#ef4444]'
+              }`}>
+                <Shield className="w-5 h-5" />
+                {integrityScore !== null ? `${integrityScore}%` : '---'}
               </p>
             </div>
           </div>

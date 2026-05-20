@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { useUIStore } from '@/lib/store/ui-store';
+import { LogoIcon } from './LogoIcon';
 import {
   LayoutDashboard, Code2, FileText, Trophy, BarChart3,
   Award, User, Brain, History, BookOpen,
@@ -71,10 +72,10 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+                <LogoIcon className="w-7 h-7" />
               </div>
-              <span className="font-bold gradient-text">ZCAT</span>
+              <span className="text-xl font-bold tracking-tight mt-0.5 gradient-text">ZCAT</span>
             </motion.div>
           )}
         </AnimatePresence>

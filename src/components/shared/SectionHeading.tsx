@@ -1,7 +1,4 @@
-'use client';
-
 import { ReactNode } from 'react';
-import { motion } from 'framer-motion';
 
 interface SectionHeadingProps {
   badge?: string;
@@ -14,12 +11,8 @@ interface SectionHeadingProps {
 
 export default function SectionHeading({ badge, title, gradient, description, children, align = 'center' }: SectionHeadingProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6 }}
-      className={`mb-16 ${align === 'center' ? 'text-center' : 'text-left'}`}
+    <div
+      className={`mb-16 animate-[fade-in_0.6s_ease-out] ${align === 'center' ? 'text-center' : 'text-left'}`}
     >
       {badge && (
         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-[#00d4ff] bg-[#00d4ff]/[0.08] border border-[#00d4ff]/20 mb-4">
@@ -37,6 +30,6 @@ export default function SectionHeading({ badge, title, gradient, description, ch
         </p>
       )}
       {children}
-    </motion.div>
+    </div>
   );
 }

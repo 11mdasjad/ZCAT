@@ -201,6 +201,12 @@ export async function GET(req: NextRequest) {
         value: count,
       }));
 
+    // Safely convert any BigInt values from raw SQL queries to Number
+    const safeActivity = (assessmentActivity as any[]).map((row: any) => ({
+      date: row.date instanceof Date ? row.date.toISOString() : String(row.date),
+      count: typeof row.count === 'bigint' ? Number(row.count) : row.count,
+    }));
+
     // Build response
     const stats = {
       kpis: {
@@ -222,7 +228,7 @@ export async function GET(req: NextRequest) {
         },
       },
       recentUsers,
-      assessmentActivity,
+      assessmentActivity: safeActivity,
       skillDistribution: topSkills,
       recentAssessments: recentAssessments.map((assessment) => ({
         id: assessment.id,

@@ -54,7 +54,7 @@ const plans = [
       'SLA guarantee',
       'Unlimited users',
     ],
-    cta: 'Contact Sales',
+    cta: 'Get Started',
     popular: false,
   },
 ];
@@ -104,7 +104,7 @@ export default function PricingSection() {
               <div className="mb-6">
                 {plan.price !== null ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">${plan.price}</span>
+                    <span className="text-4xl font-bold text-white">₹{plan.price}</span>
                     <span className="text-sm text-[#8b949e]">{plan.period}</span>
                   </div>
                 ) : (

@@ -14,15 +14,15 @@ export async function POST(req: NextRequest) {
       return errorResponse(new Error('Pasted content text is required'), 400);
     }
 
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro'];
     let lastError = null;
     let data = null;
 
     for (const modelName of modelsToTry) {
-      let retries = 2;
+      let retries = 1;
       while (retries >= 0) {
         try {
-          const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+          const model = genAI.getGenerativeModel({ model: modelName });
           const prompt = `
             You are an expert technical assessor, computer science professor, and competitive programming parser.
             Your task is to analyze the following raw, unstructured, or structured text block and parse/extract ALL technical multiple-choice questions (MCQs) and coding challenges.

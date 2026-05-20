@@ -223,7 +223,7 @@ export default function CreateAssessmentPage() {
       clearInterval(interval);
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to generate question');
+        throw new Error(data.error?.message || data.error || 'Failed to generate question');
       }
 
       const generated = data.data;
@@ -344,7 +344,7 @@ export default function CreateAssessmentPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to parse questions.');
+        throw new Error(data.error?.message || data.error || 'Failed to parse questions.');
       }
       
       const parsedQuestions: GeneratedQuestion[] = data.data;

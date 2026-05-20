@@ -10,6 +10,7 @@ export interface LeaderboardEntryWithUser extends LeaderboardEntry {
     name: string;
     email: string;
     avatarUrl: string | null;
+    sessions?: { integrityScore: number }[];
   };
 }
 
@@ -75,6 +76,12 @@ export class LeaderboardRepository extends BaseRepository<
    */
   async getRankedEntries(leaderboardId: string): Promise<LeaderboardEntryWithUser[]> {
     try {
+      const leaderboard = await prisma.leaderboard.findUnique({
+        where: { id: leaderboardId },
+        select: { assessmentId: true },
+      });
+      if (!leaderboard) throw new Error("Leaderboard not found");
+
       const entries = await prisma.leaderboardEntry.findMany({
         where: { leaderboardId },
         orderBy: { rank: 'asc' },
@@ -85,6 +92,10 @@ export class LeaderboardRepository extends BaseRepository<
               name: true,
               email: true,
               avatarUrl: true,
+              sessions: {
+                where: { assessmentId: leaderboard.assessmentId },
+                select: { integrityScore: true },
+              },
             },
           },
         },

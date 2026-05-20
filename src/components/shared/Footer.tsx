@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Zap, ExternalLink, MessageCircle, Link2, Video, Mail, ArrowRight } from 'lucide-react';
 
@@ -7,41 +5,41 @@ const footerSections = [
   {
     title: 'Platform',
     links: [
-      { label: 'Coding Tests', href: '#' },
-      { label: 'AI Proctoring', href: '#' },
-      { label: 'Live Monitoring', href: '#' },
-      { label: 'Analytics', href: '#' },
-      { label: 'Hackathons', href: '#' },
+      { label: 'Coding Tests', href: '/features/coding-assessment' },
+      { label: 'AI Proctoring', href: '/features/ai-proctoring' },
+      { label: 'Live Monitoring', href: '/features/live-monitoring' },
+      { label: 'Analytics', href: '/features/real-time-analytics' },
+      { label: 'AI Interview', href: '/features/ai-interview' },
     ],
   },
   {
     title: 'Solutions',
     links: [
-      { label: 'Campus Hiring', href: '#' },
-      { label: 'Technical Interviews', href: '#' },
-      { label: 'Skill Assessment', href: '#' },
-      { label: 'Recruitment', href: '#' },
-      { label: 'Certifications', href: '#' },
+      { label: 'Campus Hiring', href: '/solutions/campus-hiring' },
+      { label: 'Technical Interviews', href: '/solutions/technical-interviews' },
+      { label: 'Skill Assessment', href: '/solutions/skill-assessment' },
+      { label: 'Recruitment', href: '/solutions/recruitment' },
+      { label: 'Certifications', href: '/solutions/certifications' },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'About Us', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Press', href: '#' },
-      { label: 'Contact', href: '#contact' },
+      { label: 'About Us', href: '/company/about-us' },
+      { label: 'Careers', href: '/company/careers' },
+      { label: 'Blog', href: '/company/blog' },
+      { label: 'Press', href: '/company/press' },
+      { label: 'Contact', href: '/company/contact' },
     ],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Documentation', href: '#' },
-      { label: 'API Reference', href: '#' },
-      { label: 'Support', href: '#' },
-      { label: 'Community', href: '#' },
-      { label: 'Status', href: '#' },
+      { label: 'Documentation', href: '/resources/documentation' },
+      { label: 'API Reference', href: '/resources/api-reference' },
+      { label: 'Support', href: '/resources/support' },
+      { label: 'Community', href: '/resources/community' },
+      { label: 'Status', href: '/resources/status' },
     ],
   },
 ];

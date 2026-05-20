@@ -7,10 +7,25 @@ import { useAuthStore } from '@/lib/store/auth-store';
 import { Search, User } from 'lucide-react';
 import Link from 'next/link';
 import NotificationsPopover from '@/components/shared/NotificationsPopover';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { sidebarOpen } = useUIStore();
   const { user } = useAuthStore();
+  const pathname = usePathname();
+
+  // Hide the sidebar and top navigation for the actual test workspace
+  const isTestWorkspace = pathname?.includes('/candidate/tests/') && pathname !== '/candidate/tests';
+
+  if (isTestWorkspace) {
+    return (
+      <div className="min-h-screen bg-[#06080f]">
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#06080f]">
