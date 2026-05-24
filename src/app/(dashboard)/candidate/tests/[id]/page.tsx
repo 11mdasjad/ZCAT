@@ -78,15 +78,146 @@ interface SubmissionHistoryItem {
 
 // Help create code starter templates
 const getStarterCode = (language: string, title: string) => {
-  const fnName = title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const fnName = title.replace(/[^a-zA-Z0-9]+/g, '_');
+  const camelFnName = fnName.charAt(0).toLowerCase() + fnName.slice(1);
+  
   if (language === 'python') {
-    return `# Solution for "${title}"\nimport sys\n\ndef ${fnName || 'solve'}():\n    # Read all input from standard input\n    # lines = sys.stdin.read().splitlines()\n    \n    # Write your logic here\n    # print("Your output here")\n    pass\n\nif __name__ == '__main__':\n    ${fnName || 'solve'}()\n`;
+    return `# Solution for "${title}"
+# Complete the function below
+def solve(input_data):
+    # Write your solution here
+    # e.g., return can_win_nim(input_data)
+    pass
+
+class Solution:
+    def ${camelFnName}(self, piles):
+        # Write your LeetCode-style method here
+        pass
+
+if __name__ == '__main__':
+    import sys
+    import json
+    raw_input = sys.stdin.read().strip()
+    try:
+        parsed_input = json.loads(raw_input)
+    except:
+        parsed_input = raw_input
+
+    # Call solve function
+    result = solve(parsed_input)
+    if result is None:
+        # Fallback: instantiate LeetCode class and invoke method
+        try:
+            sol = Solution()
+            method_name = [m for m in dir(sol) if not m.startswith('__') and m != 'solve'][0]
+            method = getattr(sol, method_name)
+            result = method(parsed_input)
+        except Exception as e:
+            pass
+
+    # Normalize boolean outputs to match test cases
+    print(str(result).lower() if isinstance(result, bool) else result)
+`;
   } else if (language === 'javascript') {
-    return `// Solution for "${title}"\nconst fs = require('fs');\n\nfunction ${fnName || 'solve'}() {\n    // Read all input from standard input (file descriptor 0)\n    // const input = fs.readFileSync(0, 'utf-8');\n    \n    // Write your logic here\n    // console.log("Your output here");\n}\n\n${fnName || 'solve'}();\n`;
+    return `// Solution for "${title}"
+const fs = require('fs');
+
+// Complete the function below
+function solve(inputData) {
+    // Write your solution here
+    return null;
+}
+
+class Solution {
+    ${camelFnName}(piles) {
+        // Write your LeetCode-style method here
+        return null;
+    }
+}
+
+function main() {
+    const rawInput = fs.readFileSync(0, 'utf-8').trim();
+    let parsedInput;
+    try {
+        parsedInput = JSON.parse(rawInput);
+    } catch (e) {
+        parsedInput = rawInput;
+    }
+
+    let result = solve(parsedInput);
+    if (result === null) {
+        try {
+            const sol = new Solution();
+            const methods = Object.getOwnPropertyNames(Solution.prototype).filter(m => m !== 'constructor');
+            if (methods.length > 0) {
+                result = sol[methods[0]](parsedInput);
+            }
+        } catch (e) {}
+    }
+
+    console.log(result === true || result === false ? String(result) : result);
+}
+
+main();
+`;
   } else if (language === 'cpp') {
-    return `// Solution for "${title}"\n#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n\nusing namespace std;\n\nint main() {\n    // Optimize input/output operations\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    // Write your solution here\n    \n    return 0;\n}\n`;
+    return `// Solution for "${title}"
+#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <algorithm>
+
+using namespace std;
+
+// Complete the function below
+string solve(string input) {
+    // Write your solution here
+    return "";
+}
+
+int main() {
+    // Optimize input/output operations
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    string input, line;
+    while (getline(cin, line)) {
+        input += line + "\\n";
+    }
+    if (!input.empty() && input.back() == '\\n') {
+        input.pop_back();
+    }
+    
+    cout << solve(input) << "\\n";
+    return 0;
+}
+`;
   } else if (language === 'java') {
-    return `// Solution for "${title}"\nimport java.util.*;\nimport java.io.*;\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        // Write your solution here\n        \n    }\n}\n`;
+    return `// Solution for "${title}"
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    // Complete the function below
+    public static String solve(String input) {
+        // Write your solution here
+        return "";
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line).append("\\n");
+        }
+        
+        String result = solve(sb.toString().trim());
+        System.out.println(result);
+    }
+}
+`;
   }
   return '';
 };
