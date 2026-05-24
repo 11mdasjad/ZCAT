@@ -131,9 +131,9 @@ export default function MixedCandidateExamWorkspace() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true);
 
-  // Proctoring helper configuration extraction
-  const proctorTag = assessment?.tags?.find((t: string) => t.startsWith('PROCTOR:')) || 'PROCTOR:NONE';
-  const isProctorStandard = proctorTag === 'PROCTOR:STANDARD' || proctorTag === 'PROCTOR:LOCKDOWN';
+  // Proctoring helper configuration extraction - FORCE enable standard proctoring (camera snapshots) by default to support real-time feeds
+  const proctorTag = assessment?.tags?.find((t: string) => t.startsWith('PROCTOR:')) || 'PROCTOR:STANDARD';
+  const isProctorStandard = true; // Always enable standard proctoring (camera snapshots) for real-time monitoring!
   const isProctorLockdown = proctorTag === 'PROCTOR:LOCKDOWN';
 
   // Request Webcam stream
