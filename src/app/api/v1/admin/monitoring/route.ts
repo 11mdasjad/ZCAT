@@ -67,9 +67,10 @@ export async function GET(req: NextRequest) {
         displayTime = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
       }
 
-      // Determine warning or flagged status based on total violations count
+      // Determine status: flagged (5+ violations or any CRITICAL), warning (2-4), active (0-1)
+      const hasCritical = s.violations.some((v) => v.severity === 'CRITICAL');
       let activeStatus = 'active';
-      if (s.violations.length >= 5) {
+      if (s.violations.length >= 5 || hasCritical) {
         activeStatus = 'flagged';
       } else if (s.violations.length >= 2) {
         activeStatus = 'warning';
@@ -84,6 +85,9 @@ export async function GET(req: NextRequest) {
         timeLeft: displayTime,
         integrity: s.integrityScore,
         imageUrl: s.snapshots[0]?.imageUrl || null,
+        // For client-side live countdown
+        startedAt: s.startedAt.toISOString(),
+        assessmentDuration: s.assessment.duration,
       };
     });
 

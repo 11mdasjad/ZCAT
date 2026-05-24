@@ -1,6 +1,6 @@
 /**
  * Admin specific exam session monitoring details API
- * GET /api/v1/admin/monitoring/[id] - Fetch snapshots, violations, and real-time status of a candidate
+ * GET /api/v1/admin/monitoring/[id] - Fetch snapshots, violations, submissions count, and real-time status of a candidate
  */
 
 import { NextRequest } from 'next/server';
@@ -24,12 +24,13 @@ export async function GET(
 
     const { id: sessionId } = await params;
 
-    // 3. Fetch session with violations and snapshots
+    // 3. Fetch session with all proctoring data, submissions count, and metadata
     const session = await prisma.examSession.findUnique({
       where: { id: sessionId },
       include: {
         user: {
           select: {
+            id: true,
             name: true,
             email: true,
             avatarUrl: true,
@@ -37,8 +38,13 @@ export async function GET(
         },
         assessment: {
           select: {
+            id: true,
             title: true,
+            type: true,
+            difficulty: true,
             duration: true,
+            totalMarks: true,
+            passingMarks: true,
           },
         },
         violations: {
@@ -46,6 +52,17 @@ export async function GET(
         },
         snapshots: {
           orderBy: { capturedAt: 'desc' },
+          take: 20, // last 20 captures
+        },
+        submissions: {
+          select: {
+            id: true,
+            questionId: true,
+            status: true,
+            score: true,
+            submittedAt: true,
+          },
+          orderBy: { submittedAt: 'desc' },
         },
       },
     });
@@ -54,7 +71,33 @@ export async function GET(
       throw new Error('Exam session not found');
     }
 
-    return successResponse(session);
+    // 4. Compute derived metrics
+    const elapsedSeconds = Math.floor(
+      (Date.now() - new Date(session.startedAt).getTime()) / 1000
+    );
+    const totalDurationSeconds = session.assessment.duration * 60;
+    const remainingSeconds = Math.max(0, totalDurationSeconds - elapsedSeconds);
+    const remainingMins = Math.floor(remainingSeconds / 60);
+    const remainingSecs = remainingSeconds % 60;
+
+    const hasCriticalViolation = session.violations.some((v) => v.severity === 'CRITICAL');
+    const uniqueQuestionsAnswered = new Set(session.submissions.map((s) => s.questionId)).size;
+    const correctSubmissions = session.submissions.filter((s) => s.status === 'ACCEPTED').length;
+    const currentScore = session.submissions.reduce((sum, s) => sum + (s.score ?? 0), 0);
+
+    return successResponse({
+      ...session,
+      // Override computed time values with fresh server-side calculation
+      timeRemainingFormatted: `${String(remainingMins).padStart(2, '0')}:${String(remainingSecs).padStart(2, '0')}`,
+      elapsedSeconds,
+      remainingSeconds,
+      // Derived analytics
+      hasCriticalViolation,
+      uniqueQuestionsAnswered,
+      correctSubmissions,
+      currentScore,
+      totalSubmissions: session.submissions.length,
+    });
   } catch (err: any) {
     return errorResponse(err);
   }
