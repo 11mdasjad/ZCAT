@@ -1364,8 +1364,8 @@ export default function MixedCandidateExamWorkspace() {
   const selectedOption = selectedAnswers[currentQuestion.id] || '';
 
   // Coding active workspace variables
-  const currentCode = codeAnswers[currentQuestion.id] || '';
   const currentLanguage = selectedLanguages[currentQuestion.id] || 'python';
+  const currentCode = codeAnswers[currentQuestion.id] || getStarterCode(currentLanguage, currentQuestion.title);
   const isRunningActive = isRunningCode[currentQuestion.id] || false;
   const isSubmittingActive = submittingIds[currentQuestion.id] || false;
   const historyForActive = submissionHistory[currentQuestion.id] || [];
