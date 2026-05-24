@@ -328,10 +328,16 @@ export default function MixedCandidateExamWorkspace() {
 
     // Capture first snapshot immediately, then run interval
     const captureSnapshot = async () => {
-      if (!videoRef.current) return;
+      if (!videoRef.current) {
+        console.warn('Proctoring: videoRef is not yet bound.');
+        return;
+      }
       try {
         const video = videoRef.current;
-        if (video.videoWidth === 0 || video.videoHeight === 0) return;
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          console.warn('Proctoring: video stream dimensions are not yet loaded.');
+          return;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = 320;
@@ -344,14 +350,23 @@ export default function MixedCandidateExamWorkspace() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+        console.log('Proctoring: Captured snapshot base64 successfully, uploading...');
 
-        await fetch(`/api/v1/assessments/${assessmentId}/snapshot`, {
+        const res = await fetch(`/api/v1/assessments/${assessmentId}/snapshot`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Image })
         });
+
+        if (res.ok) {
+          console.log('Proctoring: Snapshot uploaded successfully to database.');
+        } else {
+          console.error('Proctoring: Snapshot upload failed with status:', res.status);
+          const errText = await res.text();
+          console.error('Proctoring: Error detail:', errText);
+        }
       } catch (err) {
-        console.error('Error uploading immediate proctoring snapshot:', err);
+        console.error('Error executing/uploading proctoring snapshot:', err);
       }
     };
 

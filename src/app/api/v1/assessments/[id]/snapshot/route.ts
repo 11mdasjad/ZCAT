@@ -2,10 +2,7 @@ import { NextRequest } from 'next/server';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import prisma from '@/lib/prisma/client';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger/logger';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 
 interface RouteContext {
   params: Promise<{
@@ -16,7 +13,8 @@ interface RouteContext {
 /**
  * POST /api/v1/assessments/[id]/snapshot
  * Save a real-time proctoring webcam snapshot from candidate video feed.
- * Supabase Storage is prioritized for serverless environments (Vercel) with local filesystem fallback.
+ * Optimized: Stores the base64 JPEG data URL directly in the database to guarantee 100% 
+ * serverless (Vercel) compatibility and eliminate external file-system or Supabase Storage dependencies.
  */
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
@@ -28,58 +26,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     // 2. Parse request body
     const body = await req.json();
-    const { image } = body; // Base64 dataURL
+    const { image } = body; // Base64 dataURL: data:image/jpeg;base64,...
 
     if (!image) {
       return errorResponse(new Error('No image snapshot data provided'), 400);
     }
 
-    // 3. Process base64 image to binary buffer
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    // 4. Determine save target
-    const timestamp = Date.now();
-    const fileName = `${user.id}_${timestamp}.jpg`;
-    const bucketName = 'avatars';
-    const filePath = `snapshots/${user.id}/${fileName}`;
-
-    let publicUrl: string | null = null;
-
-    // Try Supabase Storage first (for Vercel serverless support)
-    try {
-      const supabase = await createClient();
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, buffer, { contentType: 'image/jpeg', upsert: true });
-
-      if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-        publicUrl = urlData.publicUrl;
-        logger.info('Proctoring snapshot uploaded to Supabase Storage', { userId: user.id, path: publicUrl });
-      } else {
-        logger.warn('Supabase Storage snapshot upload failed, trying local fallback:', uploadError?.message);
-      }
-    } catch (storageErr: any) {
-      logger.warn('Supabase Storage unavailable for snapshot, trying local fallback:', storageErr.message);
-    }
-
-    // Fallback: save to local filesystem (for local development support)
-    if (!publicUrl) {
-      try {
-        const uploadDir = join(process.cwd(), 'public', 'uploads', 'snapshots', user.id);
-        await mkdir(uploadDir, { recursive: true });
-        const localPath = join(uploadDir, fileName);
-        await writeFile(localPath, buffer);
-        publicUrl = `/uploads/snapshots/${user.id}/${fileName}`;
-        logger.info('Proctoring snapshot saved locally', { userId: user.id, path: publicUrl });
-      } catch (localErr) {
-        logger.error('Local file save for snapshot failed:', localErr);
-        return errorResponse(new Error('File upload failed on all storage layers.'), 500);
-      }
-    }
-
-    // 5. Connect/find ExamSession
+    // 3. Connect/find ExamSession
     let session = await prisma.examSession.findUnique({
       where: {
         assessmentId_userId: {
@@ -102,15 +55,21 @@ export async function POST(req: NextRequest, context: RouteContext) {
       });
     }
 
-    // 6. Create ProctoringSnapshot entry in db
+    // 4. Create ProctoringSnapshot entry with direct base64 data URL
     const snapshot = await prisma.proctoringSnapshot.create({
       data: {
         sessionId: session.id,
-        imageUrl: publicUrl,
+        imageUrl: image, // Store base64 data URL directly
         faceCount: 1,
         confidence: 0.95,
         metadata: {},
       },
+    });
+
+    logger.info('Proctoring snapshot logged directly to database', {
+      userId: user.id,
+      sessionId: session.id,
+      snapshotId: snapshot.id
     });
 
     return successResponse({
@@ -118,7 +77,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       snapshot,
     });
   } catch (err) {
-    logger.error('Error logging proctoring snapshot:', err);
+    logger.error('Error logging proctoring snapshot to database:', err);
     return errorResponse(err as Error, 500);
   }
 }
