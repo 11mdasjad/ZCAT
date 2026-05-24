@@ -320,6 +320,52 @@ export default function MixedCandidateExamWorkspace() {
     };
   }, [hasStarted, isProctorStandard, isCompleted]);
 
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Proctoring Snapshot Upload loop
+  useEffect(() => {
+    if (!hasStarted || !cameraStream || !isProctorStandard || isCompleted) return;
+
+    // Capture first snapshot immediately, then run interval
+    const captureSnapshot = async () => {
+      if (!videoRef.current) return;
+      try {
+        const video = videoRef.current;
+        if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+        await fetch(`/api/v1/assessments/${assessmentId}/snapshot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Image })
+        });
+      } catch (err) {
+        console.error('Error uploading immediate proctoring snapshot:', err);
+      }
+    };
+
+    // Capture initial snapshot after 3 seconds to let camera settle
+    const initialTimeout = setTimeout(captureSnapshot, 3000);
+
+    const interval = setInterval(captureSnapshot, 20000); // Capture every 20 seconds
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [hasStarted, cameraStream, isProctorStandard, isCompleted, assessmentId]);
+
   // Final summary score calculation
   const [finalScore, setFinalScore] = useState(0);
   const [integrityScore, setIntegrityScore] = useState<number | null>(null);
@@ -2004,6 +2050,7 @@ export default function MixedCandidateExamWorkspace() {
             {cameraStream ? (
               <video
                 ref={(video) => {
+                  videoRef.current = video;
                   if (video && cameraStream && video.srcObject !== cameraStream) {
                     video.srcObject = cameraStream;
                     video.play().catch(err => console.error(err));

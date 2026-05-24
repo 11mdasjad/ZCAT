@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
           },
         },
         violations: true,
+        snapshots: {
+          orderBy: { capturedAt: 'desc' },
+          take: 1,
+        },
       },
       orderBy: {
         startedAt: 'desc',
@@ -79,6 +83,7 @@ export async function GET(req: NextRequest) {
         violations: s.violations.length,
         timeLeft: displayTime,
         integrity: s.integrityScore,
+        imageUrl: s.snapshots[0]?.imageUrl || null,
       };
     });
 
