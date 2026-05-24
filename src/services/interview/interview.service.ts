@@ -16,6 +16,9 @@ export class InterviewService {
    * Helper to execute Gemini generation with model fallbacks and clean JSON extraction
    */
   private async generateAIContent(prompt: string): Promise<any> {
+    if (!apiKey) {
+      throw new Error('Gemini API key is not configured. Please set the GEMINI_API_KEY environment variable in your project settings (e.g. Vercel dashboard).');
+    }
     const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro'];
     let lastError = null;
 
