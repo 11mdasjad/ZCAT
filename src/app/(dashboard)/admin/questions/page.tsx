@@ -55,6 +55,16 @@ export default function QuestionsPage() {
   });
   const [generating, setGenerating] = useState(false);
 
+  // MCQ Add States
+  const [mcqOptions, setMcqOptions] = useState({
+    A: '',
+    B: '',
+    C: '',
+    D: '',
+  });
+  const [mcqCorrect, setMcqCorrect] = useState('A');
+  const [mcqExplanation, setMcqExplanation] = useState('');
+
   const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
@@ -80,6 +90,11 @@ export default function QuestionsPage() {
       return;
     }
 
+    if (newQ.type === 'MCQ' && (!mcqOptions.A.trim() || !mcqOptions.B.trim() || !mcqOptions.C.trim() || !mcqOptions.D.trim())) {
+      toast.error('All 4 MCQ options are required');
+      return;
+    }
+
     setSaving(true);
     try {
       const slug = newQ.title
@@ -96,14 +111,16 @@ export default function QuestionsPage() {
         type: newQ.type,
         difficulty: newQ.difficulty,
         tags: newQ.tags,
-        timeLimit: newQ.timeLimit,
-        memoryLimit: newQ.memoryLimit,
+        timeLimit: newQ.type === 'CODING' ? newQ.timeLimit : 0,
+        memoryLimit: newQ.type === 'CODING' ? newQ.memoryLimit : 0,
         constraints: newQ.constraints ? [newQ.constraints] : [],
-        solution: newQ.solution || undefined,
+        solution: newQ.type === 'MCQ' ? mcqCorrect : (newQ.type === 'DESCRIPTIVE' ? newQ.solution : undefined),
         isPublic: newQ.isPublic,
         isActive: true,
         supportedLangs: newQ.type === 'CODING' ? ['PYTHON', 'JAVASCRIPT', 'JAVA', 'CPP'] : [],
-        testCases: newQ.testCases,
+        examples: newQ.type === 'MCQ' ? [mcqOptions.A, mcqOptions.B, mcqOptions.C, mcqOptions.D] : [],
+        hints: newQ.type === 'MCQ' && mcqExplanation ? [mcqExplanation] : [],
+        testCases: newQ.type === 'CODING' ? newQ.testCases : [],
       };
 
       const res = await fetch('/api/v1/questions', {
@@ -125,6 +142,9 @@ export default function QuestionsPage() {
         constraints: '', solution: '', isPublic: true,
         testCases: [],
       });
+      setMcqOptions({ A: '', B: '', C: '', D: '' });
+      setMcqCorrect('A');
+      setMcqExplanation('');
       fetchQuestions();
     } catch (err: any) {
       toast.error(err.message || 'Failed to create question');
@@ -387,6 +407,95 @@ export default function QuestionsPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* MCQ Options Configuration */}
+                {newQ.type === 'MCQ' && (
+                  <div className="space-y-4 p-4 rounded-xl bg-[#161b22] border border-[#21262d] animate-fade-in">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">MCQ Options Configuration</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Option A *</label>
+                        <input
+                          type="text"
+                          value={mcqOptions.A}
+                          onChange={(e) => setMcqOptions({ ...mcqOptions, A: e.target.value })}
+                          className="input-neon w-full !text-xs !py-2"
+                          placeholder="First option value"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Option B *</label>
+                        <input
+                          type="text"
+                          value={mcqOptions.B}
+                          onChange={(e) => setMcqOptions({ ...mcqOptions, B: e.target.value })}
+                          className="input-neon w-full !text-xs !py-2"
+                          placeholder="Second option value"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Option C *</label>
+                        <input
+                          type="text"
+                          value={mcqOptions.C}
+                          onChange={(e) => setMcqOptions({ ...mcqOptions, C: e.target.value })}
+                          className="input-neon w-full !text-xs !py-2"
+                          placeholder="Third option value"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Option D *</label>
+                        <input
+                          type="text"
+                          value={mcqOptions.D}
+                          onChange={(e) => setMcqOptions({ ...mcqOptions, D: e.target.value })}
+                          className="input-neon w-full !text-xs !py-2"
+                          placeholder="Fourth option value"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Correct Answer</label>
+                        <select
+                          value={mcqCorrect}
+                          onChange={(e) => setMcqCorrect(e.target.value)}
+                          className="input-neon w-full !text-xs !py-2"
+                        >
+                          <option value="A">Option A</option>
+                          <option value="B">Option B</option>
+                          <option value="C">Option C</option>
+                          <option value="D">Option D</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#8b949e] mb-1">Explanation (Stored in Hints)</label>
+                        <input
+                          type="text"
+                          value={mcqExplanation}
+                          onChange={(e) => setMcqExplanation(e.target.value)}
+                          className="input-neon w-full !text-xs !py-2"
+                          placeholder="Explanation for correct choice"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Prompt / Descriptive Solution Configuration */}
+                {newQ.type === 'DESCRIPTIVE' && (
+                  <div className="space-y-2 animate-fade-in">
+                    <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Model Answer / Evaluator Solution *</label>
+                    <textarea
+                      value={newQ.solution}
+                      onChange={(e) => setNewQ({ ...newQ, solution: e.target.value })}
+                      rows={4}
+                      className="input-neon w-full resize-none"
+                      placeholder="Specify the perfect template answer or prompt requirements to match against candidate submissions..."
+                    />
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>

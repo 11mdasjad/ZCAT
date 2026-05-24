@@ -18,6 +18,8 @@ const candidateLinks = [
   { href: '/candidate', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/candidate/challenges', icon: Code2, label: 'Coding Challenges' },
   { href: '/candidate/tests', icon: FileText, label: 'Tests' },
+  { href: '/candidate/mcq', icon: FileText, label: 'MCQ Assessments' },
+  { href: '/candidate/prompt-exams', icon: Brain, label: 'AI Prompt Exams' },
   { href: '/candidate/history', icon: History, label: 'Test History' },
   { href: '/candidate/performance', icon: BarChart3, label: 'Performance' },
   { href: '/candidate/leaderboard', icon: Trophy, label: 'Leaderboard' },
