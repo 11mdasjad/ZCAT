@@ -42,7 +42,14 @@ export default function InterviewWorkspace({
 
   // Timer
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(120);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mirror inputText inside a ref to ensure timers can access the latest state
+  const inputTextRef = useRef(inputText);
+  useEffect(() => {
+    inputTextRef.current = inputText;
+  }, [inputText]);
 
   // Media references
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -60,6 +67,29 @@ export default function InterviewWorkspace({
     };
   }, []);
 
+  // Reset countdown to 120s on next question
+  useEffect(() => {
+    setTimeLeft(120);
+  }, [currentQuestion]);
+
+  // Handle 2-minute countdown timer per question
+  useEffect(() => {
+    if (isEvaluating) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          triggerAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentQuestion, isEvaluating]);
+
   // Handle Text-to-Speech (TTS) for the question
   const speakQuestion = (text: string) => {
     if (isMuted || typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -71,10 +101,15 @@ export default function InterviewWorkspace({
     utterance.onend = () => setIsAiSpeaking(false);
     utterance.onerror = () => setIsAiSpeaking(false);
 
+    // Natural pacing parameters
+    utterance.rate = 0.90; // Slightly slower, crisp, premium cadence
+    utterance.pitch = 1.0;
+
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice =
-      voices.find((v) => v.lang.startsWith('en') && v.name.includes('Google')) ||
+      voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Premium') || v.name.includes('Google') || v.name.includes('Samantha'))) ||
       voices.find((v) => v.lang.startsWith('en'));
+    
     if (preferredVoice) utterance.voice = preferredVoice;
 
     window.speechSynthesis.speak(utterance);
@@ -185,22 +220,27 @@ export default function InterviewWorkspace({
     if (cameraActive) {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
       }
       setCameraActive(false);
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
         mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
         setCameraActive(true);
       } catch (err) {
         console.error('Webcam permission denied:', err);
-        alert('Could not launch camera. Please check permissions.');
+        alert('Could not launch camera. Please check browser camera permissions.');
       }
     }
   };
+
+  // Bind the camera stream to the video element ref after it mounts in the DOM
+  useEffect(() => {
+    if (cameraActive && mediaStreamRef.current && videoRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+    }
+  }, [cameraActive]);
 
   // Cleanup media resources on unmount
   useEffect(() => {
@@ -211,11 +251,11 @@ export default function InterviewWorkspace({
     };
   }, []);
 
-  // Submit response handler
-  const handleSubmit = async () => {
-    if (!inputText.trim() || isEvaluating) return;
+  // Unified Answer Submission Handler
+  const submitAnswer = async (answerText: string) => {
+    if (isEvaluating) return;
 
-    // Stop speaking and listening
+    // Stop speaking and listening immediately
     if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
@@ -230,19 +270,18 @@ export default function InterviewWorkspace({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId: currentQuestion.id,
-          response: inputText,
+          response: answerText,
         }),
       });
 
       if (!response.ok) throw new Error('Failed to evaluate response');
       const data = await response.json();
-
       const { nextQuestion, overallFeedback } = data.data;
 
       if (nextQuestion) {
         setCurrentQuestion(nextQuestion);
       } else if (overallFeedback) {
-        // Complete the session
+        // Complete the session and route to the report page
         onFinish(sessionId);
       }
     } catch (err) {
@@ -250,6 +289,17 @@ export default function InterviewWorkspace({
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  // User clicked "Submit Answer" manually
+  const handleSubmit = () => {
+    submitAnswer(inputText.trim());
+  };
+
+  // Triggered automatically when 2-minute countdown timer runs out
+  const triggerAutoSubmit = () => {
+    const finalAnswer = inputTextRef.current.trim() || '*(No verbal response recorded within 2-minute time limit)*';
+    submitAnswer(finalAnswer);
   };
 
   const formatTimer = (secs: number) => {
@@ -398,10 +448,14 @@ export default function InterviewWorkspace({
               {!isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
-            {/* Time HUD */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161b22] border border-[#21262d] text-white font-mono text-xs">
-              <Timer className="w-3.5 h-3.5 text-[#00d4ff]" />
-              {formatTimer(secondsElapsed)}
+            {/* Countdown Time HUD */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono text-xs transition-all ${
+              timeLeft < 20
+                ? 'bg-[#ef4444]/10 border-[#ef4444]/40 text-[#ef4444] animate-pulse font-bold'
+                : 'bg-[#161b22] border border-[#21262d] text-[#00d4ff]'
+            }`}>
+              <Timer className={`w-3.5 h-3.5 ${timeLeft < 20 ? 'text-[#ef4444]' : 'text-[#00d4ff]'}`} />
+              <span>Time Left: {formatTimer(timeLeft)}</span>
             </div>
           </div>
         </div>
