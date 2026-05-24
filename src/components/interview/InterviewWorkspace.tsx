@@ -236,11 +236,11 @@ export default function InterviewWorkspace({
   };
 
   // Bind the camera stream to the video element ref after it mounts in the DOM
-  useEffect(() => {
-    if (cameraActive && mediaStreamRef.current && videoRef.current) {
-      videoRef.current.srcObject = mediaStreamRef.current;
+  const videoCallbackRef = (node: HTMLVideoElement | null) => {
+    if (node && mediaStreamRef.current) {
+      node.srcObject = mediaStreamRef.current;
     }
-  }, [cameraActive]);
+  };
 
   // Cleanup media resources on unmount
   useEffect(() => {
@@ -383,7 +383,7 @@ export default function InterviewWorkspace({
         <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[160px] border border-[#21262d]">
           {cameraActive ? (
             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#0d1117]">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+              <video ref={videoCallbackRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
               <button
                 onClick={toggleCamera}
                 className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-red-400 hover:text-white transition-colors"
