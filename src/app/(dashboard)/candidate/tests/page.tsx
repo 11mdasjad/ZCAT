@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileText, Clock, BookOpen, Code2, Brain, Calendar, Trophy, Zap, ChevronRight, AlertCircle } from 'lucide-react';
+import { Clock, Code2, Calendar, Trophy, Zap, ChevronRight, AlertCircle } from 'lucide-react';
 import ZCATLoader from '@/components/shared/ZCATLoader';
 import toast from 'react-hot-toast';
 
@@ -25,8 +25,6 @@ interface Assessment {
 
 const categories = [
   { id: 'coding', title: 'Coding Challenges', icon: Code2, color: '#00d4ff', count: 'Active', desc: 'Algorithmic problems and data structures.' },
-  { id: 'mcq', title: 'MCQ Assessments', icon: FileText, color: '#10b981', count: 'Live', desc: 'Multiple choice questions on various subjects.' },
-  { id: 'ai', title: 'AI Prompt Exams', icon: Brain, color: '#7c3aed', count: 'Upcoming', desc: 'Test your prompt engineering skills.' },
 ];
 
 export default function TestsPage() {
@@ -36,19 +34,27 @@ export default function TestsPage() {
   const [upcomingTests, setUpcomingTests] = useState<Assessment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  // Map of assessmentId -> session status for one-attempt enforcement in the UI
+  const [sessionStatuses, setSessionStatuses] = useState<Record<string, 'COMPLETED' | 'TERMINATED'>>({});
 
   const fetchAssessments = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/v1/assessments?limit=100');
-      const json = await res.json();
-      
-      if (!res.ok || !json.success) {
+
+      // Parallel fetch: assessment list + candidate's session history
+      const [assessmentsRes, historyRes] = await Promise.all([
+        fetch('/api/v1/assessments?limit=100'),
+        fetch('/api/v1/candidate/history'),
+      ]);
+
+      const json = await assessmentsRes.json();
+
+      if (!assessmentsRes.ok || !json.success) {
         throw new Error(json.error?.message || 'Failed to load assessments');
       }
 
       const allAssessments: Assessment[] = json.data || [];
-      
+
       // Categorize assessments
       // Live & Draft are active for testing convenience, Scheduled is upcoming
       const active = allAssessments.filter(
@@ -60,6 +66,20 @@ export default function TestsPage() {
 
       setActiveTests(active);
       setUpcomingTests(upcoming);
+
+      // Build session status map from history API
+      if (historyRes.ok) {
+        const historyJson = await historyRes.json();
+        if (historyJson.success && historyJson.data) {
+          const statusMap: Record<string, 'COMPLETED' | 'TERMINATED'> = {};
+          historyJson.data.forEach((entry: any) => {
+            if (entry.assessmentId && (entry.status === 'COMPLETED' || entry.status === 'TERMINATED')) {
+              statusMap[entry.assessmentId] = entry.status;
+            }
+          });
+          setSessionStatuses(statusMap);
+        }
+      }
     } catch (err: any) {
       console.error('Error fetching assessments:', err);
       setError(err.message || 'Something went wrong while loading assessments.');
@@ -164,11 +184,7 @@ export default function TestsPage() {
                 className="glass-card rounded-xl p-5 border-l-4 border-l-[#ef4444] relative overflow-hidden group hover:border-[#30363d] transition-all flex flex-col justify-between"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  {test.type === 'APTITUDE' ? (
-                    <FileText className="w-16 h-16 text-[#ef4444]" />
-                  ) : (
-                    <Code2 className="w-16 h-16 text-[#ef4444]" />
-                  )}
+                  <Code2 className="w-16 h-16 text-[#ef4444]" />
                 </div>
                 <div className="relative z-10 flex-1">
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -197,17 +213,42 @@ export default function TestsPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleStartAssessment(test)}
-                  disabled={actionLoadingId === test.id}
-                  className="btn-neon btn-neon-primary w-full text-sm py-2 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50"
-                >
-                  {actionLoadingId === test.id ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    'Start Assessment'
-                  )}
-                </button>
+                {(() => {
+                  const sessionStatus = sessionStatuses[test.id];
+                  if (sessionStatus === 'COMPLETED') {
+                    return (
+                      <button
+                        disabled
+                        className="w-full text-sm py-2 flex items-center justify-center gap-2 relative z-10 rounded-lg bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] font-semibold cursor-not-allowed"
+                      >
+                        ✓ Submitted
+                      </button>
+                    );
+                  }
+                  if (sessionStatus === 'TERMINATED') {
+                    return (
+                      <button
+                        disabled
+                        className="w-full text-sm py-2 flex items-center justify-center gap-2 relative z-10 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-semibold cursor-not-allowed"
+                      >
+                        ✗ Disqualified
+                      </button>
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={() => handleStartAssessment(test)}
+                      disabled={actionLoadingId === test.id}
+                      className="btn-neon btn-neon-primary w-full text-sm py-2 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50"
+                    >
+                      {actionLoadingId === test.id ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        'Start Assessment'
+                      )}
+                    </button>
+                  );
+                })()}
               </motion.div>
             ))}
           </div>

@@ -258,6 +258,10 @@ export default function MixedCandidateExamWorkspace() {
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isFinishConfirmOpen, setIsFinishConfirmOpen] = useState(false);
 
+  // Session block state - prevents re-entry if already submitted or disqualified
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<'SUBMITTED' | 'DISQUALIFIED' | null>(null);
+
   // Proctoring States
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -518,20 +522,41 @@ export default function MixedCandidateExamWorkspace() {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Fetch Assessment specifications
+  // 1. Fetch Assessment specifications + check for pre-existing session (one-attempt rule)
   useEffect(() => {
     async function fetchDetails() {
       try {
         setIsLoading(true);
-        const res = await fetch(`/api/v1/assessments/${assessmentId}`);
-        const json = await res.json();
 
-        if (!res.ok || !json.success) {
-          throw new Error(json.error?.message || 'Failed to load assessment specifications.');
+        // Parallel fetch: assessment details + existing session status
+        const [assessmentRes, sessionRes] = await Promise.all([
+          fetch(`/api/v1/assessments/${assessmentId}`),
+          fetch(`/api/v1/assessments/${assessmentId}/session`),
+        ]);
+
+        const assessmentJson = await assessmentRes.json();
+
+        if (!assessmentRes.ok || !assessmentJson.success) {
+          throw new Error(assessmentJson.error?.message || 'Failed to load assessment specifications.');
         }
 
-        setAssessment(json.data);
-        setTimeLeft(json.data.duration * 60);
+        setAssessment(assessmentJson.data);
+        setTimeLeft(assessmentJson.data.duration * 60);
+
+        // Check if candidate already has a finalized session — one-attempt enforcement
+        if (sessionRes.ok) {
+          const sessionJson = await sessionRes.json();
+          if (sessionJson.success && sessionJson.data) {
+            const existingStatus = sessionJson.data.status;
+            if (existingStatus === 'COMPLETED') {
+              setIsBlocked(true);
+              setBlockedReason('SUBMITTED');
+            } else if (existingStatus === 'TERMINATED') {
+              setIsBlocked(true);
+              setBlockedReason('DISQUALIFIED');
+            }
+          }
+        }
       } catch (err: any) {
         console.error(err);
         setError(err.message || 'Unable to fetch assessment specifications.');
@@ -1017,12 +1042,23 @@ export default function MixedCandidateExamWorkspace() {
     setFinalScore(scoreCalculated);
 
     try {
-      const res = await fetch(`/api/v1/assessments/${assessmentId}/session`);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setIntegrityScore(data.data.integrityScore ?? 100);
+      // Fetch the current session integrity score
+      const sessionRes = await fetch(`/api/v1/assessments/${assessmentId}/session`);
+      const sessionData = await sessionRes.json();
+      if (sessionData.success && sessionData.data) {
+        setIntegrityScore(sessionData.data.integrityScore ?? 100);
       }
     } catch (err) {}
+
+    // Permanently seal the exam session as COMPLETED on the server (one-attempt lock)
+    try {
+      await fetch(`/api/v1/assessments/${assessmentId}/session/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (err) {
+      console.error('Failed to submit session — will retry on next load:', err);
+    }
 
     toast.success('Assessment complete! Rankings compiled instantly. 🏆');
 
@@ -1051,7 +1087,64 @@ export default function MixedCandidateExamWorkspace() {
     </div></div>
   );
 
+  // ============================================================
+  // ONE-ATTEMPT ENFORCEMENT: Block re-entry if session is finalized
+  // ============================================================
+  if (isBlocked) {
+    const isDisqualified = blockedReason === 'DISQUALIFIED';
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#06080f] relative overflow-hidden">
+        {/* Animated background glow */}
+        <div className={`absolute inset-0 pointer-events-none ${isDisqualified ? 'bg-[#ef4444]/[0.03]' : 'bg-[#00d4ff]/[0.03]'}`} />
+        <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full filter blur-[120px] opacity-20 pointer-events-none ${isDisqualified ? 'bg-[#ef4444]' : 'bg-[#00d4ff]'}`} />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          className={`relative glass-card rounded-2xl p-10 max-w-lg w-full mx-4 border shadow-2xl text-center ${isDisqualified ? 'border-[#ef4444]/30' : 'border-[#00d4ff]/30'}`}
+          style={{ boxShadow: isDisqualified ? '0 0 40px rgba(239,68,68,0.15)' : '0 0 40px rgba(0,212,255,0.12)' }}
+        >
+          {/* Lock icon */}
+          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 ${isDisqualified ? 'bg-[#ef4444]/10 border border-[#ef4444]/20' : 'bg-[#00d4ff]/10 border border-[#00d4ff]/20'}`}>
+            <Shield className={`w-10 h-10 ${isDisqualified ? 'text-[#ef4444]' : 'text-[#00d4ff]'}`} />
+          </div>
+
+          <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4 ${isDisqualified ? 'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20' : 'bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20'}`}>
+            🔒 {isDisqualified ? 'Session Terminated' : 'Attempt Already Submitted'}
+          </div>
+
+          <h1 className="text-2xl font-extrabold text-white mb-3">
+            {isDisqualified ? 'Assessment Disqualified' : 'Assessment Session Finalized'}
+          </h1>
+
+          <p className="text-sm text-[#8b949e] leading-relaxed mb-8">
+            {isDisqualified
+              ? 'Your session for this assessment was terminated by a proctor due to integrity violations. Duplicate attempts are strictly prohibited. Your result has been recorded.'
+              : 'You have already submitted your answers for this assessment. Duplicate attempts are strictly prohibited by ZCAT\'s one-attempt policy. Your score and feedback are permanently saved.'}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => router.push('/candidate/tests')}
+              className="px-5 py-2.5 rounded-lg border border-[#21262d] text-sm text-[#8b949e] hover:text-white hover:bg-white/5 transition-all w-full sm:w-auto"
+            >
+              ← Back to Tests Hub
+            </button>
+            <button
+              onClick={() => router.push('/candidate/history')}
+              className={`btn-neon w-full sm:w-auto px-5 py-2.5 text-sm flex items-center justify-center gap-2 ${isDisqualified ? 'btn-neon-secondary' : 'btn-neon-primary'}`}
+            >
+              View Test History →
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   const totalQuestions = assessment.questions?.length || 0;
+
 
   if (totalQuestions === 0) {
     return (
