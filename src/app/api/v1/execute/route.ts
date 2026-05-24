@@ -1,8 +1,8 @@
 /**
  * Code Execution API
- * Executes code in supported languages with timeout and resource limits
- *
- * Uses exec() with shell command to avoid Turbopack's static analysis issues with spawn.
+ * Executes code in supported languages with timeout and resource limits.
+ * Features a seamless online sandbox (Piston API) fallback for serverless deployments (Vercel)
+ * and hosts without local runtime compilers (python3, g++, javac).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,6 +12,7 @@ import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { tmpdir } from 'os';
 import { promisify } from 'util';
+import { logger } from '@/lib/logger/logger';
 
 const execPromise = promisify(exec);
 
@@ -26,6 +27,74 @@ interface ExecutionResult {
   timedOut: boolean;
 }
 
+/**
+ * Execute user solution via secure, sandboxed Piston API
+ */
+async function executeViaPiston(language: string, code: string, stdin: string): Promise<ExecutionResult> {
+  const startTime = Date.now();
+  try {
+    const langMap: Record<string, string> = {
+      'python': 'python',
+      'javascript': 'javascript',
+      'cpp': 'cpp',
+      'java': 'java'
+    };
+
+    const fileExts: Record<string, string> = {
+      'python': 'py',
+      'javascript': 'js',
+      'cpp': 'cpp',
+      'java': 'java'
+    };
+
+    const pistonLang = langMap[language] || language;
+    const ext = fileExts[language] || 'txt';
+    const fileName = language === 'java' ? 'Main.java' : `solution.${ext}`;
+
+    logger.info('Forwarding code execution request to Piston Sandbox API', { language, stdinLength: stdin.length });
+
+    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: pistonLang,
+        version: '*',
+        files: [
+          {
+            name: fileName,
+            content: code
+          }
+        ],
+        stdin: stdin
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Piston API returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const executionTime = Date.now() - startTime;
+    
+    return {
+      stdout: data.run?.stdout || '',
+      stderr: data.run?.stderr || '',
+      exitCode: data.run?.code !== undefined ? data.run.code : (data.run?.stderr ? 1 : 0),
+      executionTime,
+      timedOut: data.run?.signal === 'SIGKILL',
+    };
+  } catch (err: any) {
+    logger.error('Piston API execution failed:', err);
+    return {
+      stdout: '',
+      stderr: `Code Execution Pipeline Error: ${err.message}`,
+      exitCode: 1,
+      executionTime: Date.now() - startTime,
+      timedOut: false,
+    };
+  }
+}
+
 async function executeCode(language: string, code: string, stdin: string): Promise<ExecutionResult> {
   const normalizedLang = language.toLowerCase().trim();
   if (!['python', 'javascript', 'cpp', 'java'].includes(normalizedLang)) {
@@ -36,6 +105,11 @@ async function executeCode(language: string, code: string, stdin: string): Promi
       executionTime: 0,
       timedOut: false,
     };
+  }
+
+  // Force Vercel deployment to route directly to Piston to avoid resource leak in lambdas
+  if (process.env.VERCEL === '1') {
+    return executeViaPiston(normalizedLang, code, stdin);
   }
 
   const id = randomUUID();
@@ -91,6 +165,17 @@ async function executeCode(language: string, code: string, stdin: string): Promi
       });
 
       if (!compileResult.success) {
+        const isCompilerNotFound =
+          compileResult.stderr.includes('command not found') ||
+          compileResult.stderr.includes('not found');
+
+        if (isCompilerNotFound) {
+          // Trigger Piston sandbox fallback directly
+          const result = await executeViaPiston(normalizedLang, code, stdin);
+          await execPromise(`rm -rf "${tempDir}"`).catch(() => {});
+          return result;
+        }
+
         // Cleanup immediately
         await execPromise(`rm -rf "${tempDir}"`).catch(() => {});
         return {
@@ -118,8 +203,20 @@ async function executeCode(language: string, code: string, stdin: string): Promi
         const executionTime = Date.now() - startTime;
         const timedOut = error?.killed === true;
 
+        const isCommandNotFound =
+          (error && error.code === 127) ||
+          stderr.includes('command not found') ||
+          stderr.includes('not found') ||
+          (error && error.message.includes('not found'));
+
         // Async cleanup of the isolated directory
         execPromise(`rm -rf "${tempDir}"`).catch(() => {});
+
+        if (isCommandNotFound) {
+          // Trigger Piston fallback
+          executeViaPiston(normalizedLang, code, stdin).then(resolve);
+          return;
+        }
 
         resolve({
           stdout: (stdout || '').trimEnd().substring(0, MAX_OUTPUT_SIZE),
