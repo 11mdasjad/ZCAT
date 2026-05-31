@@ -612,6 +612,12 @@ export default function MixedCandidateExamWorkspace() {
     }
   }, [assessment, assessmentId]);
 
+  // Handle timeout
+  function handleAutoSubmitOnTimeout() {
+    toast.error("Time's up! Submitting your answers automatically.", { duration: 5000 });
+    finishAssessment();
+  }
+
   // 3. Count-down Timer effect
   useEffect(() => {
     if (hasStarted && !isCompleted && timeLeft > 0) {
@@ -631,12 +637,6 @@ export default function MixedCandidateExamWorkspace() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [hasStarted, isCompleted, timeLeft]);
-
-  // Handle timeout
-  const handleAutoSubmitOnTimeout = () => {
-    toast.error("Time's up! Submitting your answers automatically.", { duration: 5000 });
-    finishAssessment();
-  };
 
   const startAssessment = async () => {
     if (isProctorStandard) {
@@ -1022,7 +1022,7 @@ export default function MixedCandidateExamWorkspace() {
   };
 
   // Finish exam
-  const finishAssessment = async () => {
+  async function finishAssessment() {
     setIsFinishConfirmOpen(false);
     setIsCompleted(true);
 
@@ -1069,7 +1069,7 @@ export default function MixedCandidateExamWorkspace() {
         localStorage.removeItem(`zcat_lang_${assessmentId}_${q.id}`);
       });
     }
-  };
+  }
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -1152,7 +1152,7 @@ export default function MixedCandidateExamWorkspace() {
         <div className="text-center p-6 glass-card max-w-md border border-[#ef4444]/20 shadow-2xl">
           <AlertTriangle className="w-12 h-12 text-[#eab308] mx-auto mb-3" />
           <h2 className="text-lg font-bold text-white mb-2">No Questions Available</h2>
-          <p className="text-sm text-[#8b949e] mb-4">This assessment doesn't contain any questions yet. Please contact the administrator.</p>
+          <p className="text-sm text-[#8b949e] mb-4">This assessment doesn&apos;t contain any questions yet. Please contact the administrator.</p>
           <button onClick={() => router.push('/candidate/tests')} className="btn-neon btn-neon-secondary px-4 py-2 text-sm w-full">Back to Tests Hub</button>
         </div>
       </div>

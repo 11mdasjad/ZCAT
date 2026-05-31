@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Zap, ExternalLink, MessageCircle, Link2, Video, Mail, ArrowRight } from 'lucide-react';
+import { Zap, ExternalLink, MessageCircle, Link2, Video, ArrowRight } from 'lucide-react';
 
 const footerSections = [
   {

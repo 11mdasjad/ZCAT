@@ -22,7 +22,7 @@ export default function ContactSalesPage() {
             </h1>
             <p className="text-[#8b949e] text-lg sm:text-xl">
               Learn how ZCAT can help your engineering team scale hiring securely and effectively. 
-              Fill out the form below and we'll be in touch shortly.
+              Fill out the form below and we&apos;ll be in touch shortly.
             </p>
           </div>
 
@@ -134,7 +134,7 @@ export default function ContactSalesPage() {
                       <MessageSquare className="w-6 h-6 text-[#00d4ff]" />
                     </div>
                     <div>
-                      <h4 className="text-white font-medium mb-1">We'll reach out</h4>
+                      <h4 className="text-white font-medium mb-1">We&apos;ll reach out</h4>
                       <p className="text-sm text-[#8b949e] leading-relaxed">
                         A product expert will contact you within 24 hours to discuss your specific needs and hiring goals.
                       </p>
@@ -148,7 +148,7 @@ export default function ContactSalesPage() {
                     <div>
                       <h4 className="text-white font-medium mb-1">Book a custom demo</h4>
                       <p className="text-sm text-[#8b949e] leading-relaxed">
-                        We'll walk you through a tailored demonstration of the platform focused on your tech stack and workflows.
+                        We&apos;ll walk you through a tailored demonstration of the platform focused on your tech stack and workflows.
                       </p>
                     </div>
                   </div>

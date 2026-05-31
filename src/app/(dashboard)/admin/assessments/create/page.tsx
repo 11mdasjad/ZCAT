@@ -1524,8 +1524,8 @@ Input: 4 -> Output: false
             <div className="text-xs text-[#8b949e] space-y-3 leading-relaxed">
               <p>For outstanding, rigorous questions, specify concepts precisely:</p>
               <ul className="list-disc pl-4 space-y-1.5">
-                <li><strong className="text-white">Coding:</strong> "Validate Binary Search Tree", "Find Nth element from tail", "Sub-arrays Summing to K".</li>
-                <li><strong className="text-white">MCQs:</strong> "SQL Joins and index optimizations", "JavaScript closures inside loops", "Deep Neural Network Loss functions".</li>
+                <li><strong className="text-white">Coding:</strong> &quot;Validate Binary Search Tree&quot;, &quot;Find Nth element from tail&quot;, &quot;Sub-arrays Summing to K&quot;.</li>
+                <li><strong className="text-white">MCQs:</strong> &quot;SQL Joins and index optimizations&quot;, &quot;JavaScript closures inside loops&quot;, &quot;Deep Neural Network Loss functions&quot;.</li>
               </ul>
               <div className="bg-[#161b22] p-3 rounded-lg border border-[#21262d] mt-2">
                 <span className="text-[10px] text-[#10b981] font-bold block mb-1">PRO-TIP:</span>

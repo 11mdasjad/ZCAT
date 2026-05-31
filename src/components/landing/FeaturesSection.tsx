@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, Variants } from 'framer-motion';
-import { Shield, Code2, Eye, BarChart3, Brain, Lock } from 'lucide-react';
 import SectionHeading from '@/components/shared/SectionHeading';
 
 import Link from 'next/link';

@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react';
 import Sidebar from '@/components/shared/Sidebar';
-import { useUIStore } from '@/lib/store/ui-store';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { Search, User } from 'lucide-react';
 import Link from 'next/link';
@@ -10,7 +9,6 @@ import NotificationsPopover from '@/components/shared/NotificationsPopover';
 import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { sidebarOpen } = useUIStore();
   const { user } = useAuthStore();
   const pathname = usePathname();
 
@@ -28,12 +26,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#06080f]">
+    <div id="dashboard-layout-root" className="min-h-screen bg-[#06080f] sidebar-expanded">
       <Sidebar />
-      <div
-        className="transition-all duration-300"
-        style={{ marginLeft: sidebarOpen ? 260 : 72 }}
-      >
+      <div className="main-content-wrapper">
         {/* Top Bar */}
         <header className="sticky top-0 z-30 glass-strong border-b border-[#21262d] h-16 flex items-center justify-between px-6">
           <div className="flex items-center gap-3 flex-1">

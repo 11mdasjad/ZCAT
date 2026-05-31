@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { useUIStore } from '@/lib/store/ui-store';
 import { LogoIcon } from './LogoIcon';
+import { useEffect } from 'react';
 import {
   LayoutDashboard, Code2, FileText, Trophy, BarChart3,
   Award, User, Brain, History, BookOpen,
@@ -52,6 +53,20 @@ export default function Sidebar() {
     window.location.assign('/login');
   };
 
+  // Sync Zustand state to the HTML parent layout for zero-lag CSS transition
+  useEffect(() => {
+    const root = document.getElementById('dashboard-layout-root');
+    if (root) {
+      if (sidebarOpen) {
+        root.classList.add('sidebar-expanded');
+        root.classList.remove('sidebar-collapsed');
+      } else {
+        root.classList.add('sidebar-collapsed');
+        root.classList.remove('sidebar-expanded');
+      }
+    }
+  }, [sidebarOpen]);
+
   const isAdmin = pathname.startsWith('/admin');
   const links = isAdmin ? adminLinks : candidateLinks;
 
@@ -63,28 +78,35 @@ export default function Sidebar() {
       className="fixed left-0 top-0 bottom-0 z-40 flex flex-col glass-strong border-r border-[#21262d]"
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-[#21262d]">
-        <AnimatePresence mode="wait">
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center">
-                <LogoIcon className="w-7 h-7" />
-              </div>
-              <span className="text-xl font-bold tracking-tight mt-0.5 gradient-text">ZCAT</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all"
-        >
-          <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${!sidebarOpen ? 'rotate-180' : ''}`} />
-        </button>
+      <div className={`flex items-center h-16 px-4 border-b border-[#21262d] transition-all duration-300 ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
+        {sidebarOpen ? (
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
+              <LogoIcon className="w-8 h-8" />
+            </div>
+            <span className="text-xl font-bold tracking-tight mt-0.5 gradient-text whitespace-nowrap">
+              ZCAT
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all flex items-center justify-center"
+            title="Expand Sidebar"
+          >
+            <LogoIcon className="w-8 h-8" />
+          </button>
+        )}
+        
+        {sidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all"
+            title="Collapse Sidebar"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -99,18 +121,9 @@ export default function Sidebar() {
               title={!sidebarOpen ? label : undefined}
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-              <AnimatePresence mode="wait">
-                {sidebarOpen && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="whitespace-nowrap overflow-hidden"
-                  >
-                    {label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span className={`sidebar-text ${!sidebarOpen ? 'collapsed' : ''}`}>
+                {label}
+              </span>
             </Link>
           );
         })}
@@ -118,18 +131,23 @@ export default function Sidebar() {
 
       {/* Bottom Links */}
       <div className="p-3 border-t border-[#21262d] space-y-1">
-        <button className={`sidebar-item w-full ${!sidebarOpen ? 'justify-center !px-0' : ''}`}>
+        <button 
+          className={`sidebar-item w-full ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
+          title={!sidebarOpen ? 'Help & Support' : undefined}
+        >
           <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
-          {sidebarOpen && <span>Help & Support</span>}
+          <span className={`sidebar-text ${!sidebarOpen ? 'collapsed' : ''}`}>Help & Support</span>
         </button>
         <button
           onClick={handleLogout}
           className={`sidebar-item w-full text-[#ef4444] hover:!text-[#ef4444] hover:!bg-[#ef4444]/10 ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
+          title={!sidebarOpen ? 'Logout' : undefined}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          {sidebarOpen && <span>Logout</span>}
+          <span className={`sidebar-text ${!sidebarOpen ? 'collapsed' : ''}`}>Logout</span>
         </button>
       </div>
     </motion.aside>
   );
 }
+

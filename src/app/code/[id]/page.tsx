@@ -444,7 +444,7 @@ function CodingExamPageContent() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-[#484f58] py-4 text-center">No test cases parsed for this question. Use "Run Code" for raw execution.</p>
+                    <p className="text-xs text-[#484f58] py-4 text-center">No test cases parsed for this question. Use &quot;Run Code&quot; for raw execution.</p>
                   )}
                 </div>
               ) : (
@@ -457,7 +457,7 @@ function CodingExamPageContent() {
                   ) : output ? (
                     <pre className="whitespace-pre-wrap text-xs text-[#c9d1d9]">{output}</pre>
                   ) : (
-                    <p className="text-xs text-[#484f58]">Click "Run Code" to test against the selected case, or "Submit" to judge all test cases.</p>
+                    <p className="text-xs text-[#484f58]">Click &quot;Run Code&quot; to test against the selected case, or &quot;Submit&quot; to judge all test cases.</p>
                   )}
                 </div>
               )}

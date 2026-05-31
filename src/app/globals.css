@@ -440,3 +440,38 @@ section {
   }
 }
 
+/* ═══════════════════════════════════════
+   GPU-ACCELERATED SIDEBAR & LAYOUT
+   ═══════════════════════════════════════ */
+
+.main-content-wrapper {
+  margin-left: 260px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: margin-left;
+}
+
+#dashboard-layout-root.sidebar-collapsed .main-content-wrapper {
+  margin-left: 72px;
+}
+
+.sidebar-text {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 200px;
+  opacity: 1;
+  transform: translateX(0);
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  will-change: opacity, max-width, transform;
+}
+
+.sidebar-text.collapsed {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+

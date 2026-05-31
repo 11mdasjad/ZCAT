@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown, Loader2 } from 'lucide-react';
 import { LogoIcon } from './LogoIcon';
 import { footerPagesData } from '@/lib/data/footerPages';
 
@@ -16,10 +16,13 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navLoading, setNavLoading] = useState<'login' | 'register' | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -100,18 +103,41 @@ export default function Navbar() {
 
             {/* Desktop CTAs */}
             <div className="hidden md:flex items-center gap-3">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium text-[#8b949e] hover:text-white transition-colors duration-200"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/register"
-                className="btn-neon btn-neon-primary text-sm !py-2.5 !px-5"
-              >
-                Get Started
-              </Link>
+              {mounted ? (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setNavLoading('login')}
+                    className="px-4 py-2 text-sm font-medium text-[#8b949e] hover:text-white transition-colors duration-200 flex items-center gap-1.5"
+                  >
+                    {navLoading === 'login' && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00d4ff]" />}
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setNavLoading('register')}
+                    className="btn-neon btn-neon-primary text-sm !py-2.5 !px-5 flex items-center gap-1.5"
+                  >
+                    {navLoading === 'register' && <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />}
+                    Get Started
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-4 py-2 text-sm font-medium text-[#8b949e] hover:text-white transition-colors duration-200"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="btn-neon btn-neon-primary text-sm !py-2.5 !px-5"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -147,20 +173,49 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="w-full h-px bg-[#21262d] my-4" />
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="w-full text-center py-3 text-lg font-medium text-[#00d4ff]"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setMobileOpen(false)}
-                className="w-full btn-neon btn-neon-primary text-center mt-2"
-              >
-                Get Started
-              </Link>
+              {mounted ? (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setNavLoading('login');
+                    }}
+                    className="w-full text-center py-3 text-lg font-medium text-[#00d4ff] flex items-center justify-center gap-2"
+                  >
+                    {navLoading === 'login' && <Loader2 className="w-4 h-4 animate-spin text-[#00d4ff]" />}
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setNavLoading('register');
+                    }}
+                    className="w-full btn-neon btn-neon-primary text-center mt-2 flex items-center justify-center gap-2"
+                  >
+                    {navLoading === 'register' && <Loader2 className="w-4 h-4 animate-spin text-white" />}
+                    Get Started
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full text-center py-3 text-lg font-medium text-[#00d4ff]"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full btn-neon btn-neon-primary text-center mt-2"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}

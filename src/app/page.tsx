@@ -1,3 +1,4 @@
+// ZCAT platform - Premium Home Page with optimized transition system
 import Navbar from '@/components/shared/Navbar';
 import Footer from '@/components/shared/Footer';
 import HeroSection from '@/components/landing/HeroSection';
@@ -23,6 +24,9 @@ const TestimonialsSection = dynamic(() => import('@/components/landing/Testimoni
 const PricingSection = dynamic(() => import('@/components/landing/PricingSection'), {
   loading: () => <section className="py-24 sm:py-32" />,
 });
+const FounderSection = dynamic(() => import('@/components/landing/FounderSection'), {
+  loading: () => <section className="py-24 sm:py-32" />,
+});
 const ContactSection = dynamic(() => import('@/components/landing/ContactSection'), {
   loading: () => <section className="py-24 sm:py-32" />,
 });
@@ -39,6 +43,7 @@ export default function HomePage() {
         <CodeEditorSection />
         <StatsSection />
         <TestimonialsSection />
+        <FounderSection />
         <PricingSection />
         <ContactSection />
       </main>

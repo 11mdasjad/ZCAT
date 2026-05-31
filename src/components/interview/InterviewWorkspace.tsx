@@ -177,7 +177,7 @@ export default function InterviewWorkspace({
   }, []);
 
   // Analyze filler words and WPM in real-time
-  const analyzeSpeechMetrics = (text: string) => {
+  function analyzeSpeechMetrics(text: string) {
     const words = text.toLowerCase().split(/\s+/).filter(Boolean);
     const wordCount = words.length;
 
@@ -252,7 +252,7 @@ export default function InterviewWorkspace({
   }, []);
 
   // Unified Answer Submission Handler
-  const submitAnswer = async (answerText: string) => {
+  async function submitAnswer(answerText: string) {
     if (isEvaluating) return;
 
     // Stop speaking and listening immediately
@@ -297,7 +297,7 @@ export default function InterviewWorkspace({
   };
 
   // Triggered automatically when 2-minute countdown timer runs out
-  const triggerAutoSubmit = () => {
+  function triggerAutoSubmit() {
     const finalAnswer = inputTextRef.current.trim() || '*(No verbal response recorded within 2-minute time limit)*';
     submitAnswer(finalAnswer);
   };
@@ -518,7 +518,7 @@ export default function InterviewWorkspace({
               <span className="font-bold uppercase tracking-wider mr-1">Filler Analysis:</span>
               {Object.entries(fillerCounts).map(([w, c]) => c > 0 && (
                 <span key={w} className="px-2 py-0.5 bg-[#ef4444]/10 rounded font-semibold">
-                  "{w}": {c}x
+                  &quot;{w}&quot;: {c}x
                 </span>
               ))}
             </div>

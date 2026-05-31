@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Play, Code2, Shield, BarChart3, Cpu } from 'lucide-react';
+import { ArrowRight, Play, Shield, BarChart3, Cpu, Loader2 } from 'lucide-react';
 import ParticleBackground from '@/components/shared/ParticleBackground';
 
 export default function HeroSection() {
+  const [loading, setLoading] = useState(false);
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background layers */}
@@ -70,8 +72,14 @@ export default function HeroSection() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-wrap gap-4"
             >
-              <Link href="/register" className="btn-neon btn-neon-primary flex items-center gap-2 text-base">
-                Start Assessment <ArrowRight className="w-4 h-4" />
+              <Link 
+                href="/register" 
+                onClick={() => setLoading(true)}
+                className="btn-neon btn-neon-primary flex items-center gap-2 text-base"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin text-white" />}
+                Start Assessment 
+                {!loading && <ArrowRight className="w-4 h-4" />}
               </Link>
               <Link href="#features" className="btn-neon btn-neon-secondary flex items-center gap-2 text-base">
                 <Play className="w-4 h-4" /> Explore Platform
