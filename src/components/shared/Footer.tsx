@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Zap, ExternalLink, MessageCircle, Link2, Video, ArrowRight } from 'lucide-react';
+import { RedZcatLogo } from './RedZcatLogo';
 
 const footerSections = [
   {
@@ -53,23 +54,23 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="relative border-t border-[#21262d] bg-[#06080f]">
+    <footer className="relative border-t border-[#e2e8f0] bg-white">
       {/* Gradient Divider */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#0066ff] to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2563eb] to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Newsletter Section */}
-        <div className="py-12 border-b border-[#21262d]">
+        <div className="py-12 border-b border-[#e2e8f0]">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h3 className="text-xl font-bold text-white mb-1">Stay Ahead of the Curve</h3>
-              <p className="text-[#8b949e] text-sm">Get the latest updates on AI-powered assessments and hiring trends.</p>
+              <h3 className="text-xl font-bold text-[#0f172a] mb-1">Stay Ahead of the Curve</h3>
+              <p className="text-[#64748b] text-sm">Get the latest updates on AI-powered assessments and hiring trends.</p>
             </div>
             <div className="flex w-full md:w-auto">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="input-neon flex-1 md:w-72 !rounded-r-none"
+                className="input-neon flex-1 md:w-72 !rounded-r-none border-r-0"
               />
               <button className="btn-neon btn-neon-primary !rounded-l-none flex items-center gap-2 whitespace-nowrap">
                 Subscribe <ArrowRight className="w-4 h-4" />
@@ -83,12 +84,9 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-bold gradient-text">ZCAT</span>
+              <RedZcatLogo height={32} />
             </Link>
-            <p className="text-[#8b949e] text-sm leading-relaxed mb-6">
+            <p className="text-[#64748b] text-sm leading-relaxed mb-6">
               AI-powered assessment platform for smart hiring, testing, and skill evaluation.
             </p>
             <div className="flex items-center gap-3">
@@ -97,7 +95,7 @@ export default function Footer() {
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="w-9 h-9 rounded-lg bg-[#161b22] border border-[#21262d] flex items-center justify-center text-[#8b949e] hover:text-[#00d4ff] hover:border-[#00d4ff]/30 transition-all duration-200"
+                  className="w-9 h-9 rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] flex items-center justify-center text-[#64748b] hover:text-[#2563eb] hover:border-[#2563eb]/40 transition-all duration-200"
                 >
                   <Icon className="w-4 h-4" />
                 </a>
@@ -108,13 +106,13 @@ export default function Footer() {
           {/* Link Columns */}
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">{section.title}</h4>
+              <h4 className="text-sm font-semibold text-[#0f172a] mb-4 uppercase tracking-wider">{section.title}</h4>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-[#8b949e] hover:text-[#00d4ff] transition-colors duration-200"
+                      className="text-sm text-[#64748b] hover:text-[#2563eb] transition-colors duration-200"
                     >
                       {link.label}
                     </a>
@@ -126,14 +124,14 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="py-6 border-t border-[#21262d] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-[#484f58]">
+        <div className="py-6 border-t border-[#e2e8f0] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-[#94a3b8]">
             © {new Date().getFullYear()} ZCAT. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-[#484f58] hover:text-[#8b949e] transition-colors">Privacy</a>
-            <a href="#" className="text-sm text-[#484f58] hover:text-[#8b949e] transition-colors">Terms</a>
-            <a href="#" className="text-sm text-[#484f58] hover:text-[#8b949e] transition-colors">Cookies</a>
+            <a href="#" className="text-sm text-[#94a3b8] hover:text-[#475569] transition-colors">Privacy</a>
+            <a href="#" className="text-sm text-[#94a3b8] hover:text-[#475569] transition-colors">Terms</a>
+            <a href="#" className="text-sm text-[#94a3b8] hover:text-[#475569] transition-colors">Cookies</a>
           </div>
         </div>
       </div>

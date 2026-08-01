@@ -11,15 +11,15 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
   const Icon = pageData.icon;
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex flex-col selection:bg-[#00d4ff]/30">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col selection:bg-[#2563eb]/20">
       <Navbar />
       
       <main className="flex-1 relative">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+          <div className="absolute inset-0 bg-grid opacity-60" />
           <div 
-            className="absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full blur-[120px] opacity-20 mix-blend-screen"
+            className="absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full blur-[120px] opacity-10"
             style={{ backgroundColor: pageData.color }}
           />
         </div>
@@ -29,7 +29,7 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
           {/* Back Navigation */}
           <Link 
             href="/" 
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#8b949e] hover:text-white transition-colors mb-12"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748b] hover:text-[#0f172a] transition-colors mb-12"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -40,38 +40,33 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
             {/* Left: Content Hero */}
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border border-white/10 text-white/70 bg-white/5">
+                <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border border-[#e2e8f0] text-[#475569] bg-white shadow-sm">
                   {pageData.category}
                 </span>
               </div>
 
               <div 
-                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${pageData.gradient} flex items-center justify-center mb-8 shadow-2xl`}
-                style={{ boxShadow: `0 0 40px ${pageData.color}40` }}
+                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${pageData.gradient} flex items-center justify-center mb-8 shadow-xl`}
               >
-                <Icon className="w-8 h-8" style={{ color: pageData.color }} />
+                <Icon className="w-8 h-8 text-white" />
               </div>
               
-              <h1 className="text-4xl sm:text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
+              <h1 className="text-4xl sm:text-5xl font-bold text-[#0f172a] mb-6 leading-tight tracking-tight">
                 {pageData.title}
               </h1>
               
-              <p className="text-xl text-[#8b949e] mb-12 leading-relaxed">
+              <p className="text-xl text-[#64748b] mb-12 leading-relaxed">
                 {pageData.description}
               </p>
 
-              <div className="prose prose-invert prose-p:text-[#8b949e] prose-p:leading-loose max-w-none">
+              <div className="prose prose-slate prose-p:text-[#64748b] prose-p:leading-loose max-w-none">
                 <p>{pageData.fullDescription}</p>
               </div>
 
               <div className="mt-12 flex flex-col sm:flex-row gap-4">
                 <Link 
                   href="/register" 
-                  className="btn-neon text-white text-center flex items-center justify-center gap-2"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${pageData.color}40, transparent)`,
-                    borderColor: `${pageData.color}60`
-                  }}
+                  className="btn-neon btn-neon-primary text-center flex items-center justify-center gap-2"
                 >
                   Get Started for Free
                   <ChevronRight className="w-4 h-4" />
@@ -87,7 +82,7 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
 
             {/* Right: Detailed Sections Grid */}
             <div className="space-y-6 lg:mt-12">
-              <h3 className="text-xl font-semibold text-white mb-8 border-b border-[#21262d] pb-4">
+              <h3 className="text-xl font-semibold text-[#0f172a] mb-8 border-b border-[#e2e8f0] pb-4">
                 Overview & Details
               </h3>
               
@@ -95,7 +90,7 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
                 {pageData.sections.map((section, index) => (
                   <div 
                     key={index}
-                    className="glass-card p-6 rounded-2xl hover:border-[#30363d] transition-colors relative overflow-hidden group"
+                    className="glass-card p-6 rounded-2xl transition-all relative overflow-hidden group"
                   >
                     <div 
                       className="absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -106,8 +101,8 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
                         <CheckCircle2 className="w-5 h-5" style={{ color: pageData.color }} />
                       </div>
                       <div>
-                        <h4 className="text-white font-medium mb-1.5">{section.title}</h4>
-                        <p className="text-sm text-[#8b949e] leading-relaxed">
+                        <h4 className="text-[#0f172a] font-semibold mb-1.5">{section.title}</h4>
+                        <p className="text-sm text-[#64748b] leading-relaxed">
                           {section.description}
                         </p>
                       </div>
@@ -117,11 +112,11 @@ export default function GenericPageTemplate({ pageData }: GenericPageTemplatePro
               </div>
               
               {/* Trust Badge */}
-              <div className="mt-12 p-6 rounded-2xl bg-[#161b22] border border-[#21262d] flex items-center gap-4">
-                <Shield className="w-8 h-8 text-[#00d4ff] flex-shrink-0" />
+              <div className="mt-12 p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm flex items-center gap-4">
+                <Shield className="w-8 h-8 text-[#2563eb] flex-shrink-0" />
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Trusted Globally</h4>
-                  <p className="text-xs text-[#8b949e] mt-1">Join 500+ companies using ZCAT.</p>
+                  <h4 className="text-sm font-semibold text-[#0f172a]">Trusted Globally</h4>
+                  <p className="text-xs text-[#64748b] mt-1">Join 500+ companies using ZCAT.</p>
                 </div>
               </div>
             </div>

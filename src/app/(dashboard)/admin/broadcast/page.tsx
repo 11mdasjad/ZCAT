@@ -43,12 +43,12 @@ export default function BroadcastPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 px-4 md:px-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Megaphone className="w-6 h-6 text-[#0066ff]" /> System Broadcast
+        <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+          <Megaphone className="w-7 h-7 text-blue-600" /> System Broadcast
         </h1>
-        <p className="text-sm text-[#8b949e] mt-1">
+        <p className="text-sm text-slate-600 font-medium mt-1">
           Send a real-time alert to all active users on the platform.
         </p>
       </div>
@@ -56,13 +56,13 @@ export default function BroadcastPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-xl p-6"
+        className="rounded-xl p-6 border border-slate-200 bg-white shadow-xs"
       >
-        <div className="flex items-start gap-3 p-4 mb-6 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/20">
-          <AlertCircle className="w-5 h-5 text-[#ef4444] shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 mb-6 rounded-lg bg-red-50 border border-red-200">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-sm font-semibold text-white">Warning: Platform-wide action</h4>
-            <p className="text-xs text-[#8b949e] mt-1">
+            <h4 className="text-sm font-bold text-red-900">Warning: Platform-wide action</h4>
+            <p className="text-xs text-red-700 font-medium mt-1">
               This message will be instantly delivered to <strong>all registered users</strong> via their notification center. Ensure your message is appropriate for all audiences before sending.
             </p>
           </div>
@@ -70,12 +70,12 @@ export default function BroadcastPage() {
 
         <form onSubmit={handleBroadcast} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Broadcast Title</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Broadcast Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="input-neon w-full"
+              className="input-neon w-full font-medium"
               placeholder="e.g. Scheduled Maintenance Notice"
               maxLength={100}
               required
@@ -83,26 +83,26 @@ export default function BroadcastPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#8b949e] mb-1.5">Message Body</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Message Body</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
-              className="input-neon w-full resize-none"
+              className="input-neon w-full resize-none font-medium"
               placeholder="Type your message here..."
               maxLength={500}
               required
             />
-            <div className="flex justify-end mt-1 text-xs text-[#484f58]">
+            <div className="flex justify-end mt-1 text-xs text-slate-500 font-medium">
               {message.length}/500 characters
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-[#21262d]">
+          <div className="flex justify-end pt-4 border-t border-slate-200">
             <button
               type="submit"
               disabled={isSending || !title.trim() || !message.trim()}
-              className="btn-neon btn-neon-primary flex items-center gap-2"
+              className="btn-neon btn-neon-primary flex items-center gap-2 font-bold shadow-md cursor-pointer disabled:opacity-50"
             >
               {isSending ? (
                 <>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const COLORS = ['#00d4ff', '#a855f7', '#ec4899'];
+const COLORS = ['#2563eb', '#7c3aed', '#db2777'];
 const COUNT = 40;
 const LINK_DIST = 150;
 const FPS = 30;
@@ -13,15 +13,19 @@ export default function ParticleBackground() {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const cv = ref.current!;
-    const ctx = cv.getContext('2d')!;
-    let w = 0, h = 0, id = 0;
+    const cv = ref.current;
+    if (!cv) return;
+    
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
 
+    let w = 0, h = 0, id = 0;
     const ps: P[] = [];
 
     const resize = () => {
-      w = cv.width = cv.offsetWidth;
-      h = cv.height = cv.offsetHeight;
+      if (!cv) return;
+      w = cv.width = cv.offsetWidth || window.innerWidth;
+      h = cv.height = cv.offsetHeight || window.innerHeight;
     };
 
     const init = () => {
@@ -29,16 +33,19 @@ export default function ParticleBackground() {
       ps.length = 0;
       for (let i = 0; i < COUNT; i++) {
         ps.push({
-          x: Math.random() * w, y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8,
+          x: Math.random() * (w || 800), 
+          y: Math.random() * (h || 600),
+          vx: (Math.random() - 0.5) * 0.8, 
+          vy: (Math.random() - 0.5) * 0.8,
           r: 1 + Math.random() * 2,
           c: COLORS[i % 3],
-          o: 0.1 + Math.random() * 0.3,
+          o: 0.15 + Math.random() * 0.35,
         });
       }
     };
 
     const draw = () => {
+      if (!ctx || !w || !h) return;
       ctx.clearRect(0, 0, w, h);
 
       // links
@@ -47,7 +54,7 @@ export default function ParticleBackground() {
           const dx = ps[i].x - ps[j].x, dy = ps[i].y - ps[j].y;
           const d = dx * dx + dy * dy;
           if (d < LINK_DIST * LINK_DIST) {
-            ctx.strokeStyle = `rgba(33,38,45,${0.3 * (1 - Math.sqrt(d) / LINK_DIST)})`;
+            ctx.strokeStyle = `rgba(226, 232, 240, ${0.8 * (1 - Math.sqrt(d) / LINK_DIST)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(ps[i].x, ps[i].y);
@@ -71,17 +78,23 @@ export default function ParticleBackground() {
       ctx.globalAlpha = 1;
     };
 
-    const loop = () => { draw(); id = window.setTimeout(loop, 1000 / FPS); };
+    const loop = () => { 
+      draw(); 
+      id = window.setTimeout(loop, 1000 / FPS); 
+    };
 
     init();
     loop();
 
     window.addEventListener('resize', resize);
-    return () => { clearTimeout(id); window.removeEventListener('resize', resize); };
+    return () => { 
+      clearTimeout(id); 
+      window.removeEventListener('resize', resize); 
+    };
   }, []);
 
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="absolute inset-0 z-0 pointer-events-none">
       <canvas ref={ref} className="w-full h-full" />
     </div>
   );

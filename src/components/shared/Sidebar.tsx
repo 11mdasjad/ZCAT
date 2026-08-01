@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { useUIStore } from '@/lib/store/ui-store';
 import { LogoIcon } from './LogoIcon';
+import { RedZcatLogo } from './RedZcatLogo';
 import { useEffect } from 'react';
 import {
   LayoutDashboard, Code2, FileText, Trophy, BarChart3,
@@ -53,7 +54,6 @@ export default function Sidebar() {
     window.location.assign('/login');
   };
 
-  // Sync Zustand state to the HTML parent layout for zero-lag CSS transition
   useEffect(() => {
     const root = document.getElementById('dashboard-layout-root');
     if (root) {
@@ -75,23 +75,18 @@ export default function Sidebar() {
       initial={false}
       animate={{ width: sidebarOpen ? 260 : 72 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed left-0 top-0 bottom-0 z-40 flex flex-col glass-strong border-r border-[#21262d]"
+      className="fixed left-0 top-0 bottom-0 z-40 flex flex-col bg-white border-r border-[#e2e8f0] shadow-sm"
     >
       {/* Logo */}
-      <div className={`flex items-center h-16 px-4 border-b border-[#21262d] transition-all duration-300 ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
+      <div className={`flex items-center h-16 px-4 border-b border-[#e2e8f0] transition-all duration-300 ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
         {sidebarOpen ? (
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
-              <LogoIcon className="w-8 h-8" />
-            </div>
-            <span className="text-xl font-bold tracking-tight mt-0.5 gradient-text whitespace-nowrap">
-              ZCAT
-            </span>
+            <RedZcatLogo height={28} />
           </div>
         ) : (
           <button
             onClick={toggleSidebar}
-            className="p-1 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all flex items-center justify-center"
+            className="p-1 rounded-lg text-[#64748b] hover:text-[#0f172a] hover:bg-slate-100 transition-all flex items-center justify-center"
             title="Expand Sidebar"
           >
             <LogoIcon className="w-8 h-8" />
@@ -101,7 +96,7 @@ export default function Sidebar() {
         {sidebarOpen && (
           <button
             onClick={toggleSidebar}
-            className="p-1.5 rounded-lg text-[#8b949e] hover:text-white hover:bg-white/[0.06] transition-all"
+            className="p-1.5 rounded-lg text-[#64748b] hover:text-[#0f172a] hover:bg-slate-100 transition-all"
             title="Collapse Sidebar"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -130,7 +125,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Links */}
-      <div className="p-3 border-t border-[#21262d] space-y-1">
+      <div className="p-3 border-t border-[#e2e8f0] space-y-1">
         <button 
           className={`sidebar-item w-full ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
           title={!sidebarOpen ? 'Help & Support' : undefined}
@@ -140,7 +135,7 @@ export default function Sidebar() {
         </button>
         <button
           onClick={handleLogout}
-          className={`sidebar-item w-full text-[#ef4444] hover:!text-[#ef4444] hover:!bg-[#ef4444]/10 ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
+          className={`sidebar-item w-full text-[#dc2626] hover:!text-[#dc2626] hover:!bg-red-50 ${!sidebarOpen ? 'justify-center !px-0' : ''}`}
           title={!sidebarOpen ? 'Logout' : undefined}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
@@ -150,4 +145,3 @@ export default function Sidebar() {
     </motion.aside>
   );
 }
-

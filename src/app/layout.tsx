@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/shared/AuthProvider";
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const inter = Inter({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#06080f",
+  themeColor: "#f8fafc",
   width: "device-width",
   initialScale: 1,
 };
@@ -33,8 +34,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { Toaster } from 'react-hot-toast';
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -43,16 +42,26 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased dark ${inter.variable}`}
+      className={`h-full antialiased light ${inter.variable}`}
     >
       <head>
-        {/* DNS prefetch for external resources */}
+        <meta name="color-scheme" content="light" />
         <link rel="dns-prefetch" href="https://raw.githubusercontent.com" />
         <link rel="preconnect" href="https://raw.githubusercontent.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans bg-[#f8fafc] text-[#0f172a]">
         <AuthProvider>{children}</AuthProvider>
-        <Toaster position="top-right" toastOptions={{ style: { background: '#161b22', color: '#fff', border: '1px solid #21262d' } }} />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#ffffff',
+              color: '#0f172a',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.05)',
+            },
+          }}
+        />
       </body>
     </html>
   );

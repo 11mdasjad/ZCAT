@@ -37,7 +37,6 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
     if (!title.trim()) return;
 
     setLoading(true);
-    // Let it spin for 500ms to allow parent fetch to start
     setTimeout(() => {
       onStart({
         title: title.trim(),
@@ -53,20 +52,20 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
       {/* Back Link */}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-xs font-semibold text-[#8b949e] hover:text-[#00d4ff] transition-colors"
+        className="flex items-center gap-2 text-xs font-semibold text-[#64748b] hover:text-[#2563eb] transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </button>
 
       {/* Main Card */}
-      <div className="glass-card rounded-2xl p-6 md:p-8 space-y-6 relative overflow-hidden border border-[#21262d]">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00d4ff]/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="glass-card rounded-2xl p-6 md:p-8 space-y-6 relative overflow-hidden border border-[#e2e8f0] bg-white shadow-md">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#2563eb]/5 rounded-full filter blur-3xl pointer-events-none" />
 
         <div className="space-y-1">
-          <h2 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <Brain className="w-6 h-6 text-[#00d4ff]" /> Configure Your AI Mock Interview
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#0f172a] flex items-center gap-2.5">
+            <Brain className="w-6 h-6 text-[#2563eb]" /> Configure Your AI Mock Interview
           </h2>
-          <p className="text-sm text-[#8b949e]">
+          <p className="text-sm font-medium text-[#64748b]">
             Choose a target role, interview parameters, and practice speaking under real-time constraints.
           </p>
         </div>
@@ -74,7 +73,7 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Target Role */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-white uppercase tracking-wider block">
+            <label className="text-xs font-bold text-[#0f172a] uppercase tracking-wider block">
               1. Target Job Role / Title
             </label>
             <input
@@ -94,10 +93,10 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
                   type="button"
                   disabled={loading}
                   onClick={() => setTitle(preset)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer ${
                     title === preset
-                      ? 'border-[#00d4ff]/40 bg-[#00d4ff]/10 text-[#00d4ff]'
-                      : 'border-[#21262d] bg-[#161b22]/30 text-[#8b949e] hover:border-[#484f58] hover:text-white'
+                      ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
+                      : 'border-[#e2e8f0] bg-slate-50 text-[#64748b] hover:border-[#cbd5e1] hover:text-[#0f172a]'
                   }`}
                 >
                   {preset}
@@ -108,7 +107,7 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
 
           {/* Category / Interview Type */}
           <div className="space-y-3">
-            <label className="text-xs font-bold text-white uppercase tracking-wider block">
+            <label className="text-xs font-bold text-[#0f172a] uppercase tracking-wider block">
               2. Round/Category Type
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -116,18 +115,18 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
                 type="button"
                 disabled={loading}
                 onClick={() => setCategory('TECHNICAL')}
-                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   category === 'TECHNICAL'
-                    ? 'border-[#00d4ff]/40 bg-[#0066ff]/10 text-white'
-                    : 'border-[#21262d] bg-[#0d1117] text-[#8b949e] hover:border-[#30363d]'
+                    ? 'border-[#2563eb] bg-blue-50/70 text-[#0f172a]'
+                    : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#cbd5e1]'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${category === 'TECHNICAL' ? 'bg-[#00d4ff]/20 text-[#00d4ff]' : 'bg-[#161b22] text-[#8b949e]'}`}>
+                <div className={`p-2 rounded-lg ${category === 'TECHNICAL' ? 'bg-[#2563eb]/20 text-[#2563eb]' : 'bg-slate-100 text-[#64748b]'}`}>
                   <Brain className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold block">Technical</p>
-                  <span className="text-[10px] text-[#8b949e]">Coding & Architecture</span>
+                  <p className="text-sm font-bold block text-[#0f172a]">Technical</p>
+                  <span className="text-[10px] text-[#64748b]">Coding & Architecture</span>
                 </div>
               </button>
 
@@ -135,18 +134,18 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
                 type="button"
                 disabled={loading}
                 onClick={() => setCategory('HR')}
-                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   category === 'HR'
-                    ? 'border-[#a855f7]/40 bg-[#a855f7]/10 text-white'
-                    : 'border-[#21262d] bg-[#0d1117] text-[#8b949e] hover:border-[#30363d]'
+                    ? 'border-[#7c3aed] bg-purple-50/70 text-[#0f172a]'
+                    : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#cbd5e1]'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${category === 'HR' ? 'bg-[#a855f7]/20 text-[#a855f7]' : 'bg-[#161b22] text-[#8b949e]'}`}>
+                <div className={`p-2 rounded-lg ${category === 'HR' ? 'bg-[#7c3aed]/20 text-[#7c3aed]' : 'bg-slate-100 text-[#64748b]'}`}>
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold block">HR & Values</p>
-                  <span className="text-[10px] text-[#8b949e]">Behavioral & Teamwork</span>
+                  <p className="text-sm font-bold block text-[#0f172a]">HR & Values</p>
+                  <span className="text-[10px] text-[#64748b]">Behavioral & Teamwork</span>
                 </div>
               </button>
 
@@ -154,18 +153,18 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
                 type="button"
                 disabled={loading}
                 onClick={() => setCategory('PLACEMENT')}
-                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   category === 'PLACEMENT'
-                    ? 'border-[#10b981]/40 bg-[#10b981]/10 text-white'
-                    : 'border-[#21262d] bg-[#0d1117] text-[#8b949e] hover:border-[#30363d]'
+                    ? 'border-[#059669] bg-emerald-50/70 text-[#0f172a]'
+                    : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#cbd5e1]'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${category === 'PLACEMENT' ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-[#161b22] text-[#8b949e]'}`}>
+                <div className={`p-2 rounded-lg ${category === 'PLACEMENT' ? 'bg-[#059669]/20 text-[#059669]' : 'bg-slate-100 text-[#64748b]'}`}>
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold block">Placement</p>
-                  <span className="text-[10px] text-[#8b949e]">General Placement Mock</span>
+                  <p className="text-sm font-bold block text-[#0f172a]">Placement</p>
+                  <span className="text-[10px] text-[#64748b]">General Placement Mock</span>
                 </div>
               </button>
             </div>
@@ -175,7 +174,7 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Difficulty */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-white uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#0f172a] uppercase tracking-wider block">
                 3. Difficulty Level
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -185,10 +184,10 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
                     type="button"
                     disabled={loading}
                     onClick={() => setDifficulty(lvl)}
-                    className={`text-xs py-2.5 rounded-lg border font-semibold text-center transition-all ${
+                    className={`text-xs py-2.5 rounded-lg border font-bold text-center transition-all cursor-pointer ${
                       difficulty === lvl
-                        ? 'border-[#00d4ff]/40 bg-[#00d4ff]/10 text-[#00d4ff]'
-                        : 'border-[#21262d] bg-[#0d1117] text-[#8b949e] hover:border-[#30363d] hover:text-white'
+                        ? 'border-[#2563eb] bg-blue-50 text-[#2563eb]'
+                        : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#cbd5e1] hover:text-[#0f172a]'
                     }`}
                   >
                     {lvl}
@@ -199,32 +198,32 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
 
             {/* Voice Mode Option */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-white uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#0f172a] uppercase tracking-wider block">
                 4. Conversation Format
               </label>
               <div
                 onClick={() => !loading && setVoiceMode(!voiceMode)}
-                className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                   voiceMode
-                    ? 'border-[#00d4ff]/30 bg-[#00d4ff]/5 text-white'
-                    : 'border-[#21262d] bg-[#0d1117] text-[#8b949e]'
+                    ? 'border-[#2563eb]/40 bg-blue-50/50 text-[#0f172a]'
+                    : 'border-[#e2e8f0] bg-white text-[#64748b]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 pl-1.5">
                   {voiceMode ? (
-                    <Mic className="w-4 h-4 text-[#00d4ff] animate-pulse-glow" />
+                    <Mic className="w-4 h-4 text-[#2563eb] animate-pulse-glow" />
                   ) : (
-                    <MessageSquare className="w-4 h-4 text-[#8b949e]" />
+                    <MessageSquare className="w-4 h-4 text-[#64748b]" />
                   )}
                   <div>
                     <span className="text-xs font-bold block">{voiceMode ? 'Voice Mode' : 'Text Input Mode'}</span>
-                    <span className="text-[9px] text-[#8b949e]">
+                    <span className="text-[9px] text-[#64748b] font-medium">
                       {voiceMode ? 'Interactive TTS & Speak transcription' : 'Traditional text typing answers'}
                     </span>
                   </div>
                 </div>
                 <div className="pr-1.5">
-                  <div className={`w-8 h-4 rounded-full p-0.5 transition-all ${voiceMode ? 'bg-[#00d4ff]' : 'bg-[#21262d]'}`}>
+                  <div className={`w-8 h-4 rounded-full p-0.5 transition-all ${voiceMode ? 'bg-[#2563eb]' : 'bg-[#cbd5e1]'}`}>
                     <div className={`w-3 h-3 rounded-full bg-white transition-all ${voiceMode ? 'translate-x-4' : 'translate-x-0'}`} />
                   </div>
                 </div>
@@ -237,7 +236,7 @@ export default function InterviewWizard({ onBack, onStart }: WizardProps) {
             <button
               type="submit"
               disabled={loading || !title}
-              className="w-full btn-neon btn-neon-primary flex items-center justify-center gap-2.5 !py-3.5"
+              className="w-full btn-neon btn-neon-primary flex items-center justify-center gap-2.5 !py-3.5 font-bold cursor-pointer shadow-md"
             >
               {loading ? (
                 <>

@@ -16,9 +16,9 @@ const companies = [
 
 export default function TrustedSection() {
   return (
-    <section className="relative py-16 border-y border-[#21262d]/50 overflow-hidden bg-[#06080f]">
+    <section className="relative py-16 border-y border-[#e2e8f0] overflow-hidden bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-        <p className="text-center text-sm font-medium text-[#484f58] uppercase tracking-widest">
+        <p className="text-center text-sm font-semibold text-[#64748b] uppercase tracking-widest">
           Trusted by 500+ leading companies worldwide
         </p>
       </div>
@@ -26,8 +26,8 @@ export default function TrustedSection() {
       {/* Infinite marquee */}
       <div className="relative">
         {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#06080f] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#06080f] to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
 
         <div className="flex animate-[marquee_30s_linear_infinite]">
           {[...companies, ...companies].map((company, i) => (
@@ -40,8 +40,8 @@ export default function TrustedSection() {
               <img 
                 src={`https://raw.githubusercontent.com/gilbarbara/logos/main/logos/${company.slug}.svg`} 
                 alt={`${company.name} logo`} 
-                className={`h-9 md:h-11 w-auto object-contain drop-shadow-md rounded-md ${
-                  ['apple', 'ibm', 'intel'].includes(company.slug) ? 'brightness-0 invert opacity-90' : ''
+                className={`h-9 md:h-11 w-auto object-contain drop-shadow-xs rounded-md ${
+                  ['apple', 'ibm', 'intel'].includes(company.slug) ? 'brightness-0 opacity-80' : ''
                 }`}
                 loading="lazy"
                 decoding="async"

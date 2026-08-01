@@ -64,8 +64,8 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <Loader2 className="w-8 h-8 text-[#00d4ff] animate-spin" />
-        <p className="text-sm text-[#8b949e]">Compiling Gemini diagnostic report...</p>
+        <Loader2 className="w-8 h-8 text-[#2563eb] animate-spin" />
+        <p className="text-sm font-medium text-[#64748b]">Compiling Gemini diagnostic report...</p>
       </div>
     );
   }
@@ -73,10 +73,10 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
   if (error || !session) {
     return (
       <div className="max-w-md mx-auto py-12 text-center space-y-4">
-        <AlertCircle className="w-12 h-12 text-[#ef4444] mx-auto" />
-        <h3 className="text-xl font-bold text-white">Error Loading Report</h3>
-        <p className="text-sm text-[#8b949e]">{error || 'Could not locate session details.'}</p>
-        <button onClick={onBack} className="btn-neon btn-neon-secondary !py-2 !px-6 text-xs">
+        <AlertCircle className="w-12 h-12 text-[#dc2626] mx-auto" />
+        <h3 className="text-xl font-bold text-[#0f172a]">Error Loading Report</h3>
+        <p className="text-sm text-[#64748b]">{error || 'Could not locate session details.'}</p>
+        <button onClick={onBack} className="btn-neon btn-neon-secondary !py-2 !px-6 text-xs font-semibold cursor-pointer">
           Back to Dashboard
         </button>
       </div>
@@ -89,16 +89,16 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
     const resp = responses.find((r: Response) => r.questionId === q.id);
     return {
       name: `Q${q.order}`,
-      Score: resp ? Math.round((resp.score || 0) * 10) : 0, // scale out of 100
+      Score: resp ? Math.round((resp.score || 0) * 10) : 0,
       topic: q.category,
     };
   });
 
   const getScoreColor = (score: number) => {
-    if (score >= 85) return 'text-[#10b981]';
-    if (score >= 70) return 'text-[#00d4ff]';
-    if (score >= 50) return 'text-[#f59e0b]';
-    return 'text-[#ef4444]';
+    if (score >= 85) return 'text-[#059669]';
+    if (score >= 70) return 'text-[#2563eb]';
+    if (score >= 50) return 'text-[#d97706]';
+    return 'text-[#dc2626]';
   };
 
   const strengthsList = parsedFeedback?.strengths || ['Strong conceptual understanding'];
@@ -110,30 +110,29 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs font-semibold text-[#8b949e] hover:text-[#00d4ff] transition-colors"
+          className="flex items-center gap-2 text-xs font-semibold text-[#64748b] hover:text-[#2563eb] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </button>
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 text-xs font-semibold text-[#8b949e] hover:text-white transition-colors"
+          className="flex items-center gap-2 text-xs font-semibold text-[#64748b] hover:text-[#0f172a] transition-colors cursor-pointer"
         >
           <Printer className="w-4 h-4" /> Save PDF / Print
         </button>
       </div>
 
       {/* Main Scorecard Banner */}
-      <div className="glass-card rounded-2xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center border border-[#21262d]">
-        <div className="flex flex-col items-center justify-center text-center space-y-3 md:border-r md:border-[#21262d] md:pr-6">
+      <div className="glass-card rounded-2xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex flex-col items-center justify-center text-center space-y-3 md:border-r md:border-[#e2e8f0] md:pr-6">
           {/* Radial score orb */}
           <div className="relative w-36 h-36 flex items-center justify-center">
-            {/* SVG circle track */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
                 cy="50"
                 r="40"
-                stroke="#161b22"
+                stroke="#e2e8f0"
                 strokeWidth="8"
                 fill="transparent"
               />
@@ -150,20 +149,20 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
               />
               <defs>
                 <linearGradient id="gradientScore" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00d4ff" />
-                  <stop offset="100%" stopColor="#a855f7" />
+                  <stop offset="0%" stopColor="#2563eb" />
+                  <stop offset="100%" stopColor="#7c3aed" />
                 </linearGradient>
               </defs>
             </svg>
             <div className="absolute text-center">
-              <span className="text-3xl font-extrabold text-white">{overallScore || 0}%</span>
-              <p className="text-[10px] text-[#8b949e] uppercase font-bold tracking-wider">Overall Score</p>
+              <span className="text-3xl font-extrabold text-[#0f172a]">{overallScore || 0}%</span>
+              <p className="text-[10px] text-[#64748b] uppercase font-bold tracking-wider">Overall Score</p>
             </div>
           </div>
 
           <div>
-            <h3 className="font-extrabold text-white text-base">{title}</h3>
-            <span className="text-xs text-[#8b949e]">
+            <h3 className="font-extrabold text-[#0f172a] text-base">{title}</h3>
+            <span className="text-xs text-[#64748b] font-medium">
               Completed on {new Date(startedAt).toLocaleDateString()}
             </span>
           </div>
@@ -172,17 +171,17 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
         {/* Diagnostic Assessment Summary Text */}
         <div className="md:col-span-2 space-y-4">
           <div className="space-y-1">
-            <span className="text-[10px] text-[#00d4ff] font-extrabold uppercase tracking-wider block">Diagnostic Summary</span>
-            <h4 className="text-lg font-bold text-white">Gemini Performance Analysis</h4>
+            <span className="text-[10px] text-[#2563eb] font-extrabold uppercase tracking-wider block">Diagnostic Summary</span>
+            <h4 className="text-lg font-bold text-[#0f172a]">Gemini Performance Analysis</h4>
           </div>
-          <p className="text-sm text-[#8b949e] leading-relaxed">
+          <p className="text-sm text-[#64748b] leading-relaxed font-medium">
             {parsedFeedback?.summary || 'You successfully concluded the placement mock interview round. You demonstrated strong critical thinking, although structured answers in coding principles could be improved.'}
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
-            <span className="text-xs px-3 py-1 bg-[#10b981]/10 border border-[#10b981]/20 rounded-full text-[#10b981] font-semibold">
+            <span className="text-xs px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[#059669] font-bold">
               Ready: Medium
             </span>
-            <span className="text-xs px-3 py-1 bg-[#00d4ff]/10 border border-[#00d4ff]/20 rounded-full text-[#00d4ff] font-semibold">
+            <span className="text-xs px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-[#2563eb] font-bold">
               Placement Prep Complete
             </span>
           </div>
@@ -192,14 +191,14 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
       {/* Strengths and Weaknesses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Strengths */}
-        <div className="glass-card rounded-2xl p-5 border border-[#21262d] bg-gradient-to-br from-[#0d1117] to-[#10b981]/5">
-          <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-5 h-5 text-[#10b981]" /> Key Strengths
+        <div className="glass-card rounded-2xl p-5 border border-[#e2e8f0] bg-gradient-to-br from-white to-emerald-50/40 shadow-xs">
+          <h4 className="text-sm font-bold text-[#0f172a] flex items-center gap-2 mb-4">
+            <CheckCircle2 className="w-5 h-5 text-[#059669]" /> Key Strengths
           </h4>
           <ul className="space-y-2.5">
             {strengthsList.map((strength: string, i: number) => (
-              <li key={i} className="text-sm text-[#e4e8f1] flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] mt-2 flex-shrink-0" />
+              <li key={i} className="text-sm text-[#0f172a] flex items-start gap-2.5 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#059669] mt-2 flex-shrink-0" />
                 <span>{strength}</span>
               </li>
             ))}
@@ -207,14 +206,14 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
         </div>
 
         {/* Improvement Areas */}
-        <div className="glass-card rounded-2xl p-5 border border-[#21262d] bg-gradient-to-br from-[#0d1117] to-[#f59e0b]/5">
-          <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-[#f59e0b]" /> Areas for Improvement
+        <div className="glass-card rounded-2xl p-5 border border-[#e2e8f0] bg-gradient-to-br from-white to-amber-50/40 shadow-xs">
+          <h4 className="text-sm font-bold text-[#0f172a] flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-[#d97706]" /> Areas for Improvement
           </h4>
           <ul className="space-y-2.5">
             {improvementsList.map((gap: string, i: number) => (
-              <li key={i} className="text-sm text-[#e4e8f1] flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] mt-2 flex-shrink-0" />
+              <li key={i} className="text-sm text-[#0f172a] flex items-start gap-2.5 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#d97706] mt-2 flex-shrink-0" />
                 <span>{gap}</span>
               </li>
             ))}
@@ -223,26 +222,27 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
       </div>
 
       {/* Chart Question Scores */}
-      <div className="glass-card rounded-2xl p-5 border border-[#21262d]">
-        <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-[#8b949e]" /> Question-by-Question Progression
+      <div className="glass-card rounded-2xl p-5 border border-[#e2e8f0] bg-white shadow-sm">
+        <h4 className="text-sm font-bold text-[#0f172a] flex items-center gap-2 mb-4">
+          <TrendingUp className="w-5 h-5 text-[#2563eb]" /> Question-by-Question Progression
         </h4>
         <div className="h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={scoreData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#21262d" />
-              <XAxis dataKey="name" stroke="#8b949e" fontSize={11} />
-              <YAxis stroke="#8b949e" fontSize={11} domain={[0, 100]} />
+            <BarChart data={scoreData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+              <YAxis stroke="#64748b" fontSize={11} domain={[0, 100]} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#161b22',
-                  border: '1px solid #21262d',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '8px',
-                  color: '#e4e8f1',
+                  color: '#0f172a',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                 }}
               />
-              <Bar dataKey="Score" fill="#00d4ff" radius={[4, 4, 0, 0]} barSize={40}>
-                <LabelList dataKey="Score" position="top" fill="#e4e8f1" fontSize={10} formatter={(val: any) => `${val}%`} />
+              <Bar dataKey="Score" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={40}>
+                <LabelList dataKey="Score" position="top" fill="#0f172a" fontSize={10} formatter={(val: any) => `${val}%`} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -251,8 +251,8 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
 
       {/* Detailed Question breakdown */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-[#8b949e]" /> Detailed Question Breakdown
+        <h3 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-[#64748b]" /> Detailed Question Breakdown
         </h3>
 
         <div className="space-y-3">
@@ -263,42 +263,42 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
             return (
               <div
                 key={question.id}
-                className="glass-card rounded-xl overflow-hidden border border-[#21262d]"
+                className="glass-card rounded-xl overflow-hidden border border-[#e2e8f0] bg-white shadow-xs"
               >
                 {/* Header */}
                 <div
                   onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
-                  className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161b22]/30 transition-all select-none"
+                  className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all select-none"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="w-7 h-7 rounded-lg bg-[#161b22] text-[#8b949e] flex items-center justify-center font-bold text-xs">
+                    <span className="w-7 h-7 rounded-lg bg-slate-100 text-[#64748b] flex items-center justify-center font-bold text-xs">
                       Q{question.order}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-white truncate max-w-sm md:max-w-xl">
+                      <p className="text-sm font-bold text-[#0f172a] truncate max-w-sm md:max-w-xl">
                         {question.question}
                       </p>
-                      <span className="text-[10px] text-[#8b949e] font-medium">{question.category}</span>
+                      <span className="text-[10px] text-[#64748b] font-medium">{question.category}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4 flex-shrink-0">
                     {resp && (
-                      <span className={`text-xs font-extrabold px-2.5 py-1 rounded bg-[#161b22] ${getScoreColor((resp.score || 0) * 10)}`}>
+                      <span className={`text-xs font-extrabold px-2.5 py-1 rounded bg-slate-100 ${getScoreColor((resp.score || 0) * 10)}`}>
                         {resp.score !== null ? `${resp.score.toFixed(1)}/10` : 'N/A'}
                       </span>
                     )}
-                    {isExpanded ? <ChevronUp className="w-4 h-4 text-[#8b949e]" /> : <ChevronDown className="w-4 h-4 text-[#8b949e]" />}
+                    {isExpanded ? <ChevronUp className="w-4 h-4 text-[#64748b]" /> : <ChevronDown className="w-4 h-4 text-[#64748b]" />}
                   </div>
                 </div>
 
                 {/* Body Content */}
                 {isExpanded && (
-                  <div className="px-5 pb-5 border-t border-[#21262d]/50 pt-4 space-y-4 animate-fade-in text-sm leading-relaxed">
+                  <div className="px-5 pb-5 border-t border-[#e2e8f0] pt-4 space-y-4 animate-fade-in text-sm leading-relaxed">
                     {/* User Transcript */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] text-[#8b949e] font-bold uppercase tracking-wider block">Your Transcript</span>
-                      <div className="p-3.5 bg-[#0d1117] rounded-xl border border-[#21262d] text-white">
+                      <span className="text-[10px] text-[#64748b] font-bold uppercase tracking-wider block">Your Transcript</span>
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-[#e2e8f0] text-[#0f172a] font-medium">
                         {resp?.response || '(No response recorded)'}
                       </div>
                     </div>
@@ -317,18 +317,18 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
                       return (
                         <>
                           <div className="space-y-1.5">
-                            <span className="text-[10px] text-[#00d4ff] font-bold uppercase tracking-wider block">AI Evaluator Feedback</span>
-                            <div className="p-3.5 bg-[#0066ff]/5 rounded-xl border border-[#0066ff]/10 text-white">
+                            <span className="text-[10px] text-[#2563eb] font-bold uppercase tracking-wider block">AI Evaluator Feedback</span>
+                            <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-200 text-[#0f172a] font-medium">
                               {displayFeedback || 'Gemini score pending.'}
                             </div>
                           </div>
 
                           {modelAnswerText && (
                             <div className="space-y-2">
-                              <span className="text-[10px] text-[#a855f7] font-bold uppercase tracking-wider block flex items-center gap-1">
-                                <Star className="w-3.5 h-3.5 fill-[#a855f7]/30" /> Recommended Ideal Response
+                              <span className="text-[10px] text-[#7c3aed] font-bold uppercase tracking-wider block flex items-center gap-1">
+                                <Star className="w-3.5 h-3.5 fill-[#7c3aed]/30" /> Recommended Ideal Response
                               </span>
-                              <div className="p-3.5 bg-[#a855f7]/5 rounded-xl border border-[#a855f7]/10 text-white text-xs whitespace-pre-wrap leading-relaxed font-mono">
+                              <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200 text-[#0f172a] text-xs whitespace-pre-wrap leading-relaxed font-mono font-medium">
                                 {modelAnswerText}
                               </div>
                             </div>
@@ -346,7 +346,7 @@ export default function InterviewReport({ sessionId, onBack }: ReportProps) {
 
       {/* Back Button */}
       <div className="flex justify-center pt-4">
-        <button onClick={onBack} className="btn-neon btn-neon-primary !py-3 !px-10 text-sm">
+        <button onClick={onBack} className="btn-neon btn-neon-primary !py-3 !px-10 text-sm font-semibold cursor-pointer shadow-md">
           Return to Dashboard
         </button>
       </div>

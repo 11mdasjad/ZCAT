@@ -41,7 +41,6 @@ export default function CandidateLeaderboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. Fetch connected assessments
   const fetchAssessments = async (isFirstLoad = false) => {
     try {
       if (isFirstLoad) setIsLoading(true);
@@ -49,11 +48,9 @@ export default function CandidateLeaderboardPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Filter only assessments that have leaderboards connected
         const connected = data.data.filter((a: AssessmentLeaderboard) => a.leaderboardConnected);
         setAssessments(connected);
 
-        // Auto-select the first connected assessment if none selected
         if (connected.length > 0 && !selectedAssessmentId) {
           setSelectedAssessmentId(connected[0].id);
         }
@@ -66,7 +63,6 @@ export default function CandidateLeaderboardPage() {
     }
   };
 
-  // 2. Fetch specific rankings
   const fetchRankings = async (assessmentId: string, silent = false) => {
     if (!assessmentId) return;
     try {
@@ -84,12 +80,10 @@ export default function CandidateLeaderboardPage() {
     }
   };
 
-  // Initial load
   useEffect(() => {
     fetchAssessments(true);
   }, []);
 
-  // Poll rankings every 5 seconds for live racing reordering
   useEffect(() => {
     if (!selectedAssessmentId) return;
 
@@ -102,17 +96,15 @@ export default function CandidateLeaderboardPage() {
     return () => clearInterval(interval);
   }, [selectedAssessmentId]);
 
-  // Filter rankings based on search
   const filteredRankings = useMemo(() => {
     return rankings.filter((r) =>
       r.user.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [rankings, searchQuery]);
 
-  // Podium (Top 3)
   const podium = useMemo(() => {
     const topThree = rankings.slice(0, 3);
-    const result: (LeaderboardEntry | null)[] = [null, null, null]; // [2nd, 1st, 3rd]
+    const result: (LeaderboardEntry | null)[] = [null, null, null];
 
     topThree.forEach((entry) => {
       if (entry.rank === 1) result[1] = entry;
@@ -123,7 +115,6 @@ export default function CandidateLeaderboardPage() {
     return result;
   }, [rankings]);
 
-  // Helper formatting functions
   const formatDuration = (sec: number) => {
     const mins = Math.floor(sec / 60);
     const remainingSecs = sec % 60;
@@ -139,14 +130,14 @@ export default function CandidateLeaderboardPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-7xl mx-auto px-4 md:px-6">
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-[#f59e0b] animate-bounce" /> Live Leaderboard
+          <h1 className="text-3xl font-bold text-[#0f172a] flex items-center gap-3">
+            <Trophy className="w-8 h-8 text-[#d97706] animate-bounce" /> Live Leaderboard
           </h1>
-          <p className="text-sm text-[#8b949e] mt-1">
+          <p className="text-sm font-medium text-[#64748b] mt-1">
             Compete in real time. Solve challenges successfully to climb your way to the top!
           </p>
         </div>
@@ -158,7 +149,7 @@ export default function CandidateLeaderboardPage() {
               <select
                 value={selectedAssessmentId}
                 onChange={(e) => setSelectedAssessmentId(e.target.value)}
-                className="bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2 text-sm text-[#c9d1d9] font-medium focus:border-[#00d4ff]/50 outline-none transition-colors appearance-none pr-10 hover:border-[#8b949e]"
+                className="bg-white border border-[#cbd5e1] rounded-lg px-4 py-2 text-sm text-[#0f172a] font-bold focus:border-[#2563eb] outline-none transition-colors appearance-none pr-10 shadow-xs cursor-pointer"
               >
                 {assessments.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -166,12 +157,12 @@ export default function CandidateLeaderboardPage() {
                   </option>
                 ))}
               </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#8b949e] flex items-center justify-center font-bold">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#64748b] flex items-center justify-center font-bold">
                 ▾
               </div>
             </div>
           ) : (
-            <span className="text-xs text-[#8b949e] border border-[#21262d] rounded-lg px-3 py-1.5 bg-[#0d1117]">
+            <span className="text-xs font-semibold text-[#64748b] border border-[#e2e8f0] rounded-lg px-3 py-1.5 bg-slate-50">
               No active exams connected
             </span>
           )}
@@ -182,63 +173,61 @@ export default function CandidateLeaderboardPage() {
               if (selectedAssessmentId) fetchRankings(selectedAssessmentId, false);
             }}
             disabled={isRefreshing}
-            className="p-2 rounded-lg border border-[#30363d] text-[#8b949e] hover:text-white hover:bg-[#21262d] transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg border border-[#e2e8f0] bg-white text-[#64748b] hover:text-[#0f172a] transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
             title="Force Sync Now"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-[#2563eb] ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {assessments.length === 0 ? (
-        /* Empty State */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-xl p-16 text-center max-w-2xl mx-auto"
+          className="glass-card rounded-xl p-16 text-center max-w-2xl mx-auto border border-[#e2e8f0] bg-white shadow-xs"
         >
-          <div className="w-20 h-20 rounded-full bg-[#f59e0b]/5 border border-[#f59e0b]/20 flex items-center justify-center mx-auto mb-6">
-            <Trophy className="w-10 h-10 text-[#f59e0b]/40" />
+          <div className="w-20 h-20 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-6">
+            <Trophy className="w-10 h-10 text-[#d97706]" />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-3">No Active Assessment Leaderboards</h3>
-          <p className="text-sm text-[#8b949e] mb-6">
+          <h3 className="text-2xl font-bold text-[#0f172a] mb-3">No Active Assessment Leaderboards</h3>
+          <p className="text-sm font-medium text-[#64748b] mb-6 leading-relaxed">
             There are currently no scheduled or active examinations utilizing real-time leaderboards. 
             Once recruiters activate a live challenge, candidate rankings will dynamically render here!
           </p>
-          <div className="flex justify-center gap-2 text-xs text-[#484f58]">
-            <Star className="w-4 h-4 text-[#8b949e]" />
+          <div className="flex justify-center gap-2 text-xs font-semibold text-[#94a3b8]">
+            <Star className="w-4 h-4 text-[#d97706]" />
             <span>Practice solving coding challenges in the dashboard to warm up!</span>
           </div>
         </motion.div>
       ) : (
-        /* Rankings Layout */
         <div className="space-y-8">
           {/* Stats Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="glass-card p-5 rounded-xl border border-[#21262d]">
-              <div className="text-xs text-[#8b949e] uppercase font-bold tracking-wider">Contest Status</div>
-              <div className="text-xl font-bold text-[#10b981] mt-1 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping" />
+            <div className="glass-card p-5 rounded-xl border border-[#e2e8f0] bg-white shadow-xs">
+              <div className="text-xs text-[#64748b] uppercase font-bold tracking-wider">Contest Status</div>
+              <div className="text-xl font-extrabold text-[#059669] mt-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#059669] animate-ping" />
                 Live Session
               </div>
             </div>
-            <div className="glass-card p-5 rounded-xl border border-[#21262d]">
-              <div className="text-xs text-[#8b949e] uppercase font-bold tracking-wider">Active Competitors</div>
-              <div className="text-xl font-bold text-white mt-1 flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-[#0066ff]" />
+            <div className="glass-card p-5 rounded-xl border border-[#e2e8f0] bg-white shadow-xs">
+              <div className="text-xs text-[#64748b] uppercase font-bold tracking-wider">Active Competitors</div>
+              <div className="text-xl font-extrabold text-[#0f172a] mt-1 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-[#2563eb]" />
                 {rankings.length} Logged In
               </div>
             </div>
-            <div className="glass-card p-5 rounded-xl border border-[#21262d]">
-              <div className="text-xs text-[#8b949e] uppercase font-bold tracking-wider">Contest Type</div>
-              <div className="text-xl font-bold text-white mt-1 uppercase tracking-wide text-[#7c3aed]">
+            <div className="glass-card p-5 rounded-xl border border-[#e2e8f0] bg-white shadow-xs">
+              <div className="text-xs text-[#64748b] uppercase font-bold tracking-wider">Contest Type</div>
+              <div className="text-xl font-extrabold mt-1 uppercase tracking-wide text-[#7c3aed]">
                 {getActiveAssessment?.type || 'Coding'}
               </div>
             </div>
-            <div className="glass-card p-5 rounded-xl border border-[#21262d]">
-              <div className="text-xs text-[#8b949e] uppercase font-bold tracking-wider">Scoring Rule</div>
-              <div className="text-xl font-bold text-white mt-1 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#f59e0b]" />
+            <div className="glass-card p-5 rounded-xl border border-[#e2e8f0] bg-white shadow-xs">
+              <div className="text-xs text-[#64748b] uppercase font-bold tracking-wider">Scoring Rule</div>
+              <div className="text-xl font-extrabold text-[#0f172a] mt-1 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#d97706]" />
                 +4 pts / question
               </div>
             </div>
@@ -254,10 +243,10 @@ export default function CandidateLeaderboardPage() {
                     key={`podium-2-${podium[0].id}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full md:w-64 glass-strong p-6 rounded-2xl border border-white/10 text-center flex flex-col items-center justify-center relative overflow-hidden order-2 md:order-1 h-72 shadow-[0_4px_30px_rgba(255,255,255,0.02)]"
+                    className="w-full md:w-64 glass-card p-6 rounded-2xl border border-[#e2e8f0] bg-white text-center flex flex-col items-center justify-center relative overflow-hidden order-2 md:order-1 h-72 shadow-sm"
                   >
                     <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-slate-400 to-slate-200" />
-                    <div className="w-16 h-16 rounded-full bg-[#161b22] border-2 border-slate-300 flex items-center justify-center text-xl font-bold text-white mb-3 shadow-[0_0_20px_rgba(200,200,200,0.15)] relative">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 border-2 border-slate-300 flex items-center justify-center text-xl font-bold text-[#0f172a] mb-3 shadow-xs relative">
                       {podium[0].user.avatarUrl ? (
                         <img src={podium[0].user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -265,9 +254,9 @@ export default function CandidateLeaderboardPage() {
                       )}
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 border border-slate-400 text-xs font-black text-slate-800 flex items-center justify-center">2</div>
                     </div>
-                    <h4 className="text-base font-bold text-white max-w-full truncate">{podium[0].user.name}</h4>
-                    <p className="text-xs text-[#8b949e] mt-1">{podium[0].problemsSolved} Solved</p>
-                    <div className="mt-4 px-4 py-1.5 bg-slate-400/10 rounded-full border border-slate-400/20 text-[#c9d1d9] text-lg font-black tracking-wide">
+                    <h4 className="text-base font-bold text-[#0f172a] max-w-full truncate">{podium[0].user.name}</h4>
+                    <p className="text-xs font-semibold text-[#64748b] mt-1">{podium[0].problemsSolved} Solved</p>
+                    <div className="mt-4 px-4 py-1.5 bg-slate-100 rounded-full border border-slate-300 text-[#0f172a] text-lg font-black tracking-wide">
                       {podium[0].score} pts
                     </div>
                   </motion.div>
@@ -281,22 +270,22 @@ export default function CandidateLeaderboardPage() {
                     key={`podium-1-${podium[1].id}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full md:w-72 glass-strong p-8 rounded-2xl border border-yellow-500/20 text-center flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-2 h-80 shadow-[0_4px_40px_rgba(245,158,11,0.06)] scale-105"
+                    className="w-full md:w-72 glass-card p-8 rounded-2xl border border-amber-300 bg-white text-center flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-2 h-80 shadow-md scale-105"
                   >
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-yellow-500 to-amber-300" />
-                    <div className="w-20 h-20 rounded-full bg-[#161b22] border-2 border-yellow-400 flex items-center justify-center text-2xl font-bold text-white mb-4 shadow-[0_0_30px_rgba(245,158,11,0.25)] relative">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 to-amber-300" />
+                    <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-400 flex items-center justify-center text-2xl font-bold text-[#0f172a] mb-4 shadow-sm relative">
                       {podium[1].user.avatarUrl ? (
                         <img src={podium[1].user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         podium[1].user.name.charAt(0)
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-yellow-400 border border-yellow-500 text-sm font-black text-slate-900 flex items-center justify-center">1</div>
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-400 border border-amber-500 text-sm font-black text-slate-900 flex items-center justify-center">1</div>
                     </div>
-                    <h4 className="text-lg font-black text-white max-w-full truncate flex items-center gap-1.5">
-                      {podium[1].user.name} <Award className="w-5 h-5 text-yellow-400 animate-pulse" />
+                    <h4 className="text-lg font-black text-[#0f172a] max-w-full truncate flex items-center gap-1.5">
+                      {podium[1].user.name} <Award className="w-5 h-5 text-amber-500 animate-pulse" />
                     </h4>
-                    <p className="text-xs text-[#8b949e] mt-1">{podium[1].problemsSolved} Solved</p>
-                    <div className="mt-4 px-5 py-2 bg-yellow-500/10 rounded-full border border-yellow-500/30 text-yellow-400 text-xl font-black tracking-wide">
+                    <p className="text-xs font-semibold text-[#64748b] mt-1">{podium[1].problemsSolved} Solved</p>
+                    <div className="mt-4 px-5 py-2 bg-amber-50 rounded-full border border-amber-300 text-[#d97706] text-xl font-black tracking-wide">
                       {podium[1].score} pts
                     </div>
                   </motion.div>
@@ -310,10 +299,10 @@ export default function CandidateLeaderboardPage() {
                     key={`podium-3-${podium[2].id}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full md:w-64 glass-strong p-6 rounded-2xl border border-amber-600/10 text-center flex flex-col items-center justify-center relative overflow-hidden order-3 md:order-3 h-64 shadow-[0_4px_30px_rgba(217,119,6,0.01)]"
+                    className="w-full md:w-64 glass-card p-6 rounded-2xl border border-[#e2e8f0] bg-white text-center flex flex-col items-center justify-center relative overflow-hidden order-3 md:order-3 h-64 shadow-xs"
                   >
                     <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-700 to-amber-500" />
-                    <div className="w-14 h-14 rounded-full bg-[#161b22] border-2 border-amber-600 flex items-center justify-center text-lg font-bold text-white mb-3 shadow-[0_0_20px_rgba(217,119,6,0.15)] relative">
+                    <div className="w-14 h-14 rounded-full bg-amber-50 border-2 border-amber-600 flex items-center justify-center text-lg font-bold text-[#0f172a] mb-3 shadow-xs relative">
                       {podium[2].user.avatarUrl ? (
                         <img src={podium[2].user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -321,9 +310,9 @@ export default function CandidateLeaderboardPage() {
                       )}
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 border border-amber-700 text-[10px] font-black text-white flex items-center justify-center">3</div>
                     </div>
-                    <h4 className="text-sm font-bold text-white max-w-full truncate">{podium[2].user.name}</h4>
-                    <p className="text-xs text-[#8b949e] mt-1">{podium[2].problemsSolved} Solved</p>
-                    <div className="mt-4 px-4 py-1.5 bg-amber-600/10 rounded-full border border-amber-600/20 text-[#d97706] text-base font-black tracking-wide">
+                    <h4 className="text-sm font-bold text-[#0f172a] max-w-full truncate">{podium[2].user.name}</h4>
+                    <p className="text-xs font-semibold text-[#64748b] mt-1">{podium[2].problemsSolved} Solved</p>
+                    <div className="mt-4 px-4 py-1.5 bg-amber-50 rounded-full border border-amber-200 text-[#d97706] text-base font-black tracking-wide">
                       {podium[2].score} pts
                     </div>
                   </motion.div>
@@ -333,36 +322,34 @@ export default function CandidateLeaderboardPage() {
           )}
 
           {/* Search & List Table */}
-          <div className="glass-strong rounded-xl border border-[#21262d] overflow-hidden">
-            {/* Toolbar */}
-            <div className="p-4 border-b border-[#21262d] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#161b22]/40">
-              <h3 className="text-lg font-semibold text-white">Full Leaderboard Rankings</h3>
+          <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50">
+              <h3 className="text-lg font-bold text-[#0f172a]">Full Leaderboard Rankings</h3>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b949e]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
                 <input
                   type="text"
                   placeholder="Search competitor..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full sm:w-64 bg-[#0d1117] border border-[#30363d] rounded-lg pl-9 pr-4 py-1.5 text-sm text-[#e4e8f1] placeholder:text-[#8b949e] focus:border-[#00d4ff]/50 outline-none transition-colors"
+                  className="w-full sm:w-64 bg-white border border-[#cbd5e1] rounded-lg pl-9 pr-4 py-1.5 text-sm text-[#0f172a] font-medium placeholder:text-[#94a3b8] focus:border-[#2563eb] outline-none transition-colors"
                 />
               </div>
             </div>
 
-            {/* Rankings Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#21262d] text-xs uppercase text-[#8b949e] bg-[#0d1117]/80">
-                    <th className="px-6 py-4 font-semibold w-20">Rank</th>
-                    <th className="px-6 py-4 font-semibold">Competitor</th>
-                    <th className="px-6 py-4 font-semibold">Score</th>
-                    <th className="px-6 py-4 font-semibold">Problems Solved</th>
-                    <th className="px-6 py-4 font-semibold">Time Spent</th>
-                    <th className="px-6 py-4 font-semibold text-right">Progress</th>
+                  <tr className="border-b border-[#e2e8f0] text-xs uppercase text-[#64748b] font-extrabold bg-slate-50">
+                    <th className="px-6 py-4 font-bold w-20">Rank</th>
+                    <th className="px-6 py-4 font-bold">Competitor</th>
+                    <th className="px-6 py-4 font-bold">Score</th>
+                    <th className="px-6 py-4 font-bold">Problems Solved</th>
+                    <th className="px-6 py-4 font-bold">Time Spent</th>
+                    <th className="px-6 py-4 font-bold text-right">Progress</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#21262d]">
+                <tbody className="divide-y divide-[#e2e8f0]">
                   <AnimatePresence initial={false}>
                     {filteredRankings.map((row) => (
                       <motion.tr
@@ -372,24 +359,22 @@ export default function CandidateLeaderboardPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="hover:bg-white/[0.01] transition-colors group"
+                        className="hover:bg-slate-50 transition-colors group"
                       >
-                        {/* Rank Badge */}
                         <td className="px-6 py-4 font-bold text-center">
                           <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-black text-xs ${
-                            row.rank === 1 ? 'bg-yellow-400 text-slate-900' :
+                            row.rank === 1 ? 'bg-amber-400 text-slate-900' :
                             row.rank === 2 ? 'bg-slate-300 text-slate-800' :
                             row.rank === 3 ? 'bg-amber-600 text-white' :
-                            'text-[#8b949e]'
+                            'text-[#64748b]'
                           }`}>
                             {row.rank}
                           </span>
                         </td>
 
-                        {/* Competitor Profile */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#21262d] text-white flex items-center justify-center font-bold text-xs uppercase border border-[#30363d] overflow-hidden">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 text-[#0f172a] flex items-center justify-center font-bold text-xs uppercase border border-[#e2e8f0] overflow-hidden">
                               {row.user.avatarUrl ? (
                                 <img src={row.user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                               ) : (
@@ -397,38 +382,34 @@ export default function CandidateLeaderboardPage() {
                               )}
                             </div>
                             <div>
-                              <div className="font-semibold text-white text-sm">{row.user.name}</div>
-                              <div className="text-xs text-[#8b949e]">{row.user.email}</div>
+                              <div className="font-bold text-[#0f172a] text-sm">{row.user.name}</div>
+                              <div className="text-xs text-[#64748b] font-medium">{row.user.email}</div>
                             </div>
                           </div>
                         </td>
 
-                        {/* Score */}
-                        <td className="px-6 py-4 text-sm text-[#c9d1d9] font-black">
+                        <td className="px-6 py-4 text-sm text-[#0f172a] font-extrabold">
                           {row.score} pts
                         </td>
 
-                        {/* Problems Solved */}
-                        <td className="px-6 py-4 text-sm text-[#8b949e]">
+                        <td className="px-6 py-4 text-sm text-[#64748b] font-medium">
                           {row.problemsSolved} questions
                         </td>
 
-                        {/* Time Spent */}
-                        <td className="px-6 py-4 text-sm text-[#8b949e] flex items-center gap-1.5 mt-2.5">
-                          <Clock className="w-3.5 h-3.5" />
+                        <td className="px-6 py-4 text-sm text-[#64748b] font-medium flex items-center gap-1.5 mt-2.5">
+                          <Clock className="w-3.5 h-3.5 text-[#2563eb]" />
                           {formatDuration(row.timeTaken)}
                         </td>
 
-                        {/* Progress Bar / Ratio */}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-3">
-                            <div className="w-24 h-1.5 rounded-full bg-[#161b22] border border-[#21262d] overflow-hidden">
+                            <div className="w-24 h-1.5 rounded-full bg-slate-100 border border-[#e2e8f0] overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-[#0066ff] to-[#7c3aed] transition-all duration-1000"
-                                style={{ width: `${Math.min(100, (row.problemsSolved / 5) * 100)}%` }} // Assumes max 5 questions as baseline
+                                className="h-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] transition-all duration-1000"
+                                style={{ width: `${Math.min(100, (row.problemsSolved / 5) * 100)}%` }}
                               />
                             </div>
-                            <span className="text-xs text-[#8b949e] font-semibold w-8">{row.problemsSolved}/5</span>
+                            <span className="text-xs text-[#64748b] font-bold w-8">{row.problemsSolved}/5</span>
                           </div>
                         </td>
                       </motion.tr>
@@ -437,9 +418,9 @@ export default function CandidateLeaderboardPage() {
 
                   {filteredRankings.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-[#8b949e]">
+                      <td colSpan={6} className="px-6 py-12 text-center text-[#64748b] font-medium">
                         <div className="flex flex-col items-center justify-center gap-3">
-                          <AlertTriangle className="w-8 h-8 text-[#f59e0b]/50" />
+                          <AlertTriangle className="w-8 h-8 text-[#d97706]" />
                           <p className="text-sm">No active participants found matching search queries.</p>
                         </div>
                       </td>

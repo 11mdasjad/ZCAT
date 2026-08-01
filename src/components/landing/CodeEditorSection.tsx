@@ -90,7 +90,7 @@ export default function CodeEditorSection() {
   };
 
   return (
-    <section className="relative py-24 sm:py-32">
+    <section className="relative py-24 sm:py-32 bg-[#f8fafc]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
           badge="Code Editor"
@@ -106,16 +106,16 @@ export default function CodeEditorSection() {
           transition={{ duration: 0.6 }}
           className="max-w-5xl mx-auto"
         >
-          <div className="glass-card rounded-2xl overflow-hidden border border-[#21262d]">
+          <div className="glass-card rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xl bg-white">
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#21262d] bg-[#0d1117]/80">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#e2e8f0] bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
                   <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
                   <div className="w-3 h-3 rounded-full bg-[#10b981]" />
                 </div>
-                <span className="text-xs text-[#484f58] font-mono">solution.py</span>
+                <span className="text-xs text-[#64748b] font-mono font-medium">solution.py</span>
               </div>
               <div className="flex items-center gap-3">
                 {/* Language Selector */}
@@ -123,20 +123,20 @@ export default function CodeEditorSection() {
                   <select
                     value={selectedLang}
                     onChange={(e) => { setSelectedLang(e.target.value); setShowOutput(false); }}
-                    className="appearance-none bg-[#161b22] border border-[#21262d] rounded-lg px-3 py-1.5 text-xs text-[#8b949e] pr-7 outline-none focus:border-[#00d4ff]/50 cursor-pointer"
+                    className="appearance-none bg-white border border-[#cbd5e1] rounded-lg px-3 py-1.5 text-xs text-[#0f172a] font-medium pr-7 outline-none focus:border-[#2563eb] cursor-pointer shadow-sm"
                   >
                     {languages.map((lang) => (
                       <option key={lang} value={lang}>{lang}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#484f58] pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#64748b] pointer-events-none" />
                 </div>
 
                 {/* Run Button */}
                 <button
                   onClick={handleRun}
                   disabled={running}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#10b981] to-[#059669] text-white text-xs font-semibold hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-200 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#059669] to-[#047857] text-white text-xs font-semibold hover:shadow-md transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
                   {running ? (
                     <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -149,15 +149,15 @@ export default function CodeEditorSection() {
             </div>
 
             {/* Code Area */}
-            <div className="relative bg-[#0d1117] p-5 min-h-[320px]">
+            <div className="relative bg-[#0f172a] p-5 min-h-[320px]">
               {/* Line numbers + code */}
               <div className="flex font-mono text-sm leading-relaxed">
-                <div className="pr-4 text-right select-none text-[#484f58]/60 border-r border-[#21262d] mr-4">
+                <div className="pr-4 text-right select-none text-[#64748b]/80 border-r border-[#1e293b] mr-4">
                   {codeSnippets[selectedLang].split('\n').map((_, i) => (
                     <div key={i}>{i + 1}</div>
                   ))}
                 </div>
-                <pre className="flex-1 text-[#e4e8f1] overflow-x-auto">
+                <pre className="flex-1 text-[#e2e8f0] overflow-x-auto">
                   <code>{codeSnippets[selectedLang]}</code>
                 </pre>
               </div>
@@ -169,25 +169,25 @@ export default function CodeEditorSection() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="border-t border-[#21262d]"
+                className="border-t border-[#1e293b]"
               >
-                <div className="flex items-center gap-2 px-4 py-2 bg-[#161b22]/50 border-b border-[#21262d]">
-                  <Terminal className="w-3.5 h-3.5 text-[#10b981]" />
-                  <span className="text-xs font-medium text-[#8b949e]">Console Output</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] border-b border-[#334155]">
+                  <Terminal className="w-3.5 h-3.5 text-[#34d399]" />
+                  <span className="text-xs font-semibold text-[#e2e8f0]">Console Output</span>
                 </div>
-                <div className="p-4 bg-[#0d1117] font-mono text-sm space-y-1">
-                  <div className="text-[#10b981]">$ Compiling {selectedLang}...</div>
-                  <div className="text-[#8b949e]">  Compilation successful (0.12s)</div>
-                  <div className="text-[#8b949e]" />
-                  <div className="flex items-center gap-2 text-[#10b981]">
+                <div className="p-4 bg-[#0f172a] font-mono text-sm space-y-1">
+                  <div className="text-[#34d399]">$ Compiling {selectedLang}...</div>
+                  <div className="text-[#94a3b8]">  Compilation successful (0.12s)</div>
+                  <div className="text-[#94a3b8]" />
+                  <div className="flex items-center gap-2 text-[#34d399]">
                     <CheckCircle className="w-3.5 h-3.5" />
                     Test Case 1: Passed — Output: [0, 1]
                   </div>
-                  <div className="flex items-center gap-2 text-[#10b981]">
+                  <div className="flex items-center gap-2 text-[#34d399]">
                     <CheckCircle className="w-3.5 h-3.5" />
                     Test Case 2: Passed — Output: [1, 2]
                   </div>
-                  <div className="mt-2 text-[#00d4ff]">═══ 2/2 test cases passed | Runtime: 42ms | Memory: 14.2MB ═══</div>
+                  <div className="mt-2 text-[#38bdf8]">═══ 2/2 test cases passed | Runtime: 42ms | Memory: 14.2MB ═══</div>
                 </div>
               </motion.div>
             )}

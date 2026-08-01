@@ -15,17 +15,17 @@ export default function SectionHeading({ badge, title, gradient, description, ch
       className={`mb-16 animate-[fade-in_0.6s_ease-out] ${align === 'center' ? 'text-center' : 'text-left'}`}
     >
       {badge && (
-        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-[#00d4ff] bg-[#00d4ff]/[0.08] border border-[#00d4ff]/20 mb-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] animate-[pulse-glow_2s_ease-in-out_infinite]" />
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-[#0284c7] bg-[#0284c7]/[0.08] border border-[#0284c7]/20 mb-4 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#0284c7] animate-[pulse-glow_2s_ease-in-out_infinite]" />
           {badge}
         </span>
       )}
-      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#0f172a] leading-tight">
         {title}{' '}
         {gradient && <span className="gradient-text">{gradient}</span>}
       </h2>
       {description && (
-        <p className="mt-4 text-lg text-[#8b949e] max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-4 text-lg text-[#64748b] max-w-2xl mx-auto leading-relaxed">
           {description}
         </p>
       )}

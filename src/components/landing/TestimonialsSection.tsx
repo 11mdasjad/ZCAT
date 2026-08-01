@@ -62,7 +62,7 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section className="relative py-24 sm:py-32">
+    <section className="relative py-24 sm:py-32 bg-[#f8fafc]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
           badge="Testimonials"
@@ -72,9 +72,9 @@ export default function TestimonialsSection() {
         />
 
         <div className="max-w-3xl mx-auto relative">
-          <div className="glass-card rounded-2xl p-8 sm:p-10 min-h-[260px] flex flex-col justify-center relative overflow-hidden">
+          <div className="glass-card rounded-2xl p-8 sm:p-10 min-h-[260px] flex flex-col justify-center relative overflow-hidden bg-white border border-[#e2e8f0] shadow-md">
             {/* Quote icon */}
-            <Quote className="absolute top-6 right-6 w-12 h-12 text-[#0066ff]/10" />
+            <Quote className="absolute top-6 right-6 w-12 h-12 text-[#2563eb]/10" />
 
             <AnimatePresence custom={direction} mode="wait">
               <motion.div
@@ -92,25 +92,25 @@ export default function TestimonialsSection() {
                     <Star
                       key={i}
                       className="w-4 h-4"
-                      fill={i < testimonials[current].rating ? '#f59e0b' : 'transparent'}
-                      color={i < testimonials[current].rating ? '#f59e0b' : '#484f58'}
+                      fill={i < testimonials[current].rating ? '#d97706' : 'transparent'}
+                      color={i < testimonials[current].rating ? '#d97706' : '#cbd5e1'}
                     />
                   ))}
                 </div>
 
                 {/* Quote */}
-                <p className="text-lg text-[#e4e8f1] leading-relaxed mb-6 italic">
+                <p className="text-lg text-[#0f172a] leading-relaxed mb-6 italic font-medium">
                   &ldquo;{testimonials[current].quote}&rdquo;
                 </p>
 
                 {/* Author */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563eb] to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm shadow-sm">
                     {testimonials[current].name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">{testimonials[current].name}</p>
-                    <p className="text-xs text-[#8b949e]">{testimonials[current].role}</p>
+                    <p className="text-sm font-bold text-[#0f172a]">{testimonials[current].name}</p>
+                    <p className="text-xs text-[#64748b]">{testimonials[current].role}</p>
                   </div>
                 </div>
               </motion.div>
@@ -121,7 +121,7 @@ export default function TestimonialsSection() {
           <div className="flex items-center justify-center gap-4 mt-6">
             <button
               onClick={() => paginate(-1)}
-              className="p-2 rounded-lg glass border border-[#21262d] text-[#8b949e] hover:text-white hover:border-[#00d4ff]/30 transition-all"
+              className="p-2 rounded-lg bg-white border border-[#cbd5e1] text-[#64748b] hover:text-[#0f172a] hover:border-[#2563eb] transition-all shadow-xs cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -131,8 +131,8 @@ export default function TestimonialsSection() {
                 <button
                   key={i}
                   onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    i === current ? 'bg-[#00d4ff] w-6' : 'bg-[#30363d] hover:bg-[#484f58]'
+                  className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    i === current ? 'bg-[#2563eb] w-6' : 'bg-[#cbd5e1] hover:bg-[#94a3b8]'
                   }`}
                 />
               ))}
@@ -140,7 +140,7 @@ export default function TestimonialsSection() {
 
             <button
               onClick={() => paginate(1)}
-              className="p-2 rounded-lg glass border border-[#21262d] text-[#8b949e] hover:text-white hover:border-[#00d4ff]/30 transition-all"
+              className="p-2 rounded-lg bg-white border border-[#cbd5e1] text-[#64748b] hover:text-[#0f172a] hover:border-[#2563eb] transition-all shadow-xs cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

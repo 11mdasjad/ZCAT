@@ -29,7 +29,7 @@ export default function ZCATLoader({
         {/* Glow backdrop */}
         <motion.div
           className="absolute inset-0 rounded-full blur-2xl"
-          style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.15), transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.12), transparent 70%)' }}
           animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -40,10 +40,10 @@ export default function ZCATLoader({
             key={i}
             className={`absolute ${s.orb} rounded-full`}
             style={{
-              background: i % 2 === 0 ? '#00d4ff' : '#a855f7',
+              background: i % 2 === 0 ? '#2563eb' : '#7c3aed',
               boxShadow: i % 2 === 0
-                ? '0 0 8px rgba(0,212,255,0.6)'
-                : '0 0 8px rgba(168,85,247,0.6)',
+                ? '0 0 8px rgba(37,99,235,0.4)'
+                : '0 0 8px rgba(124,58,237,0.4)',
               top: '50%',
               left: '50%',
             }}
@@ -67,15 +67,11 @@ export default function ZCATLoader({
           />
         ))}
 
-        {/* Center logo */}
         <motion.div
-          className={`${s.logo} rounded-2xl bg-gradient-to-br from-[#0066ff] to-[#7c3aed] flex items-center justify-center relative z-10`}
-          style={{
-            boxShadow: '0 0 30px rgba(0,102,255,0.3), 0 0 60px rgba(124,58,237,0.15)',
-          }}
+          className={`${s.logo} rounded-2xl bg-[#E50914] flex items-center justify-center relative z-10 shadow-md`}
           animate={{
             scale: [1, 1.05, 1],
-            rotate: [0, 5, -5, 0],
+            rotate: [0, 3, -3, 0],
           }}
           transition={{
             duration: 2.5,
@@ -83,13 +79,13 @@ export default function ZCATLoader({
             ease: 'easeInOut',
           }}
         >
-          <Zap className={`${s.icon} text-white`} />
+          <span className="font-serif italic font-black text-white text-xl" style={{ fontFamily: 'Georgia, serif' }}>Z</span>
         </motion.div>
       </div>
 
-      {/* Message with shimmer */}
+      {/* Message */}
       <motion.p
-        className={`${s.text} text-[#8b949e] mt-6 font-medium`}
+        className={`${s.text} text-[#64748b] mt-6 font-medium`}
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
       >
@@ -97,9 +93,9 @@ export default function ZCATLoader({
       </motion.p>
 
       {/* Progress bar */}
-      <div className="w-32 h-0.5 bg-[#21262d] rounded-full mt-3 overflow-hidden">
+      <div className="w-32 h-1 bg-[#e2e8f0] rounded-full mt-3 overflow-hidden">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-[#0066ff] via-[#a855f7] to-[#00d4ff]"
+          className="h-full rounded-full bg-gradient-to-r from-[#2563eb] via-[#7c3aed] to-[#db2777]"
           animate={{ x: ['-100%', '200%'] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
           style={{ width: '50%' }}

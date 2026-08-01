@@ -469,7 +469,7 @@ export default function MixedCandidateExamWorkspace() {
       }
       try {
         const video = videoRef.current;
-        if (video.videoWidth === 0 || video.videoHeight === 0) {
+        if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
           console.warn('Proctoring: video stream dimensions are not yet loaded.');
           return;
         }
